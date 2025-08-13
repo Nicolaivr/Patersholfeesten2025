@@ -45,6 +45,9 @@
       padding-left: 0.8em;
       background: #ebeff5;
     }
+    .timeline-grid-wrap {
+      position: relative;
+    }
     .timeline-grid {
       display: grid;
       grid-template-columns: 80px repeat(var(--stage-count), 1fr);
@@ -52,7 +55,7 @@
       border-radius: 8px;
       background: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      overflow: hidden;
+      overflow: visible;
       position: relative;
     }
     .timeline-header {
@@ -79,57 +82,55 @@
       min-height: 2.5em;
       box-sizing: border-box;
       position: relative;
+      z-index: 1;
     }
     .timeline-cell {
       border-bottom: 1px solid #e3eaf4;
       min-height: 2.5em;
-      padding: 0.3em 0.4em;
+      padding: 0;
       box-sizing: border-box;
       position: relative;
       background: #fff;
+      z-index: 1;
+    }
+    .event-stack {
       display: flex;
+      height: 100%;
       gap: 0.2em;
       align-items: stretch;
+      width: 100%;
     }
-    .timeline-cell-inner {
+    .timeline-event {
       flex: 1 1 0;
       display: flex;
       flex-direction: column;
-      margin: 0.1em 0;
+      margin: 0.1em 0.1em;
       border-radius: 5px;
       overflow: hidden;
       border: 1px solid #ddd;
       min-width: 0;
       background: #fafcff;
+      position: relative;
+      z-index: 3;
     }
-    .timeline-cell-inner.event {
-      background: #eafaf5;
-      border-left: 5px solid #1abc9c;
-      font-weight: 500;
-      color: #212;
-      border: 1.5px solid #1abc9c;
-    }
-    .timeline-cell-inner.stage-kaatsspelplein { border-left-color: #1abc9c; background: #eafaf5; border-color: #1abc9c; }
-    .timeline-cell-inner.stage-viersprong { border-left-color: #e67e22; background: #fcf3eb; border-color: #e67e22; }
-    .timeline-cell-inner.stage-algemeen { border-left-color: #2e3d51; background: #f2f5fa; border-color: #2e3d51; }
-
+    .timeline-event.stage-kaatsspelplein { border-left: 5px solid #1abc9c; background: #eafaf5; border-color: #1abc9c; }
+    .timeline-event.stage-viersprong { border-left: 5px solid #e67e22; background: #fcf3eb; border-color: #e67e22; }
+    .timeline-event.stage-algemeen { border-left: 5px solid #2e3d51; background: #f2f5fa; border-color: #2e3d51; }
     .event-title { font-weight: bold; font-size: 1.01em; }
     .event-info { font-size: 0.95em; color: #445; }
     .event-time { font-size: 0.92em; font-style: italic; color: #555; }
-
     .now-line {
       position: absolute;
       left: 0;
       right: 0;
       height: 2.5px;
       background: red;
-      z-index: 5;
+      z-index: 10;
       pointer-events: none;
       transition: top 0.2s;
     }
-
     @media (max-width: 800px) {
-      .timeline-header, .timeline-time, .timeline-cell, .timeline-cell-inner { font-size: 0.97rem; }
+      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.97rem; }
       header h1 { font-size: 2rem; }
       .timeline-container { padding: 0 0.2rem; }
       .timeline-grid { font-size: 0.93rem; }
@@ -149,26 +150,20 @@
     <div class="timeline-container" id="timeline"></div>
   </main>
   <script>
-    // Utility: pad time string to HH:MM
+    // Utility functions
     function padTime(t) {
       return t.length === 5 ? t : t.length === 4 ? '0' + t : t;
     }
-
-    // Convert HH:MM to minutes since midnight
     function timeToMinutes(t) {
       const [h, m] = t.split(':').map(Number);
       return h * 60 + m;
     }
-    // Convert minutes since midnight to HH:MM
     function minutesToTime(m) {
       const h = Math.floor(m / 60);
       const mm = m % 60;
       return h.toString().padStart(2, '0') + ':' + mm.toString().padStart(2, '0');
     }
-
-    // Create array of time slots (e.g. every 30 minutes)
     function createTimeSlots(events, slotMinutes = 30) {
-      // Find min and max times for the day
       let min = '24:00', max = '00:00';
       for (const ev of events) {
         if (padTime(ev.start) < min) min = padTime(ev.start);
@@ -176,7 +171,6 @@
       }
       min = padTime(min);
       max = padTime(max);
-
       const slots = [];
       let cur = timeToMinutes(min);
       const end = timeToMinutes(max);
@@ -186,9 +180,7 @@
       }
       return slots;
     }
-
     function getAllStages(events) {
-      // Return array of unique stages, sorted by a preferred order
       const stageSet = new Set(events.map(ev => ev.stage));
       const order = ['kaatsspelplein', 'viersprong', 'algemeen'];
       const stages = Array.from(stageSet);
@@ -201,7 +193,6 @@
       });
       return stages;
     }
-
     function groupEventsByDate(events) {
       const grouped = {};
       for (const ev of events) {
@@ -210,62 +201,112 @@
       }
       return grouped;
     }
-
-    // For a stage and a time slot, find all events active at that slot
-    function getEventsInSlot(stageEvents, slotStart, slotEnd) {
-      return stageEvents.filter(ev =>
-        timeToMinutes(padTime(ev.start)) < slotEnd &&
-        timeToMinutes(padTime(ev.end)) > slotStart
-      );
+    // For a stage, build a list of event blocks with startIdx, span, and overlap info
+    function calcStageBlocks(stageEvents, slots, slotMinutes) {
+      // Sort by start time
+      stageEvents = stageEvents.slice().sort((a,b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
+      // For each event, determine startIdx, span (in slots)
+      const blocks = [];
+      for (const ev of stageEvents) {
+        const startM = timeToMinutes(padTime(ev.start));
+        const endM = timeToMinutes(padTime(ev.end));
+        let startIdx = slots.findIndex(s => timeToMinutes(s) === startM);
+        if (startIdx === -1) {
+          // Find nearest slot before event start
+          startIdx = slots.findIndex(s => timeToMinutes(s) > startM) - 1;
+          if (startIdx < 0) startIdx = 0;
+        }
+        let endIdx = slots.findIndex(s => timeToMinutes(s) >= endM);
+        if (endIdx === -1) endIdx = slots.length;
+        const span = Math.max(1, endIdx - startIdx);
+        blocks.push({ev, startIdx, span});
+      }
+      // Now, handle overlaps: for each slot, build an array of overlapping events
+      const slotOverlaps = Array(slots.length).fill(0).map(()=>[]);
+      blocks.forEach((block, idx) => {
+        for (let i = block.startIdx; i < block.startIdx + block.span && i < slots.length; ++i) {
+          slotOverlaps[i].push(idx);
+        }
+      });
+      // For each block, determine its overlap index (column) and total overlaps
+      blocks.forEach((block, idx) => {
+        // Find max overlap in the block's range
+        let maxOverlap = 1;
+        let myCol = 0;
+        for (let i = block.startIdx; i < block.startIdx + block.span && i < slots.length; ++i) {
+          const overlaps = slotOverlaps[i];
+          maxOverlap = Math.max(maxOverlap, overlaps.length);
+          myCol = Math.max(myCol, overlaps.indexOf(idx));
+        }
+        block.overlapIdx = myCol;
+        block.overlapCount = maxOverlap;
+      });
+      return blocks;
     }
-
     function renderDayGrid(date, events, stages, slotMinutes = 30, dayIdx = 0) {
       const slots = createTimeSlots(events, slotMinutes);
-      const slotStarts = slots.map(timeToMinutes);
-      const slotEnds = slotStarts.map((start, i) => (i < slotStarts.length-1 ? slotStarts[i+1] : start+slotMinutes));
       const stageMap = {};
       stages.forEach(s => stageMap[s] = []);
       for (const ev of events) {
         stageMap[ev.stage].push(ev);
       }
-
+      // For each stage, build block info
+      const stageBlocks = {};
+      stages.forEach(stage => {
+        stageBlocks[stage] = calcStageBlocks(stageMap[stage], slots, slotMinutes);
+      });
+      // Map: per stage, per slot: which event block index starts here
+      const stageSlotBlock = {};
+      stages.forEach(stage => {
+        stageSlotBlock[stage] = {};
+        stageBlocks[stage].forEach((block, i) => {
+          stageSlotBlock[stage][block.startIdx] = stageSlotBlock[stage][block.startIdx] || [];
+          stageSlotBlock[stage][block.startIdx].push({...block, blockIdx: i});
+        });
+      });
+      // Track for each stage/slot the number of rows to skip due to rowspans
+      const stageSkip = {};
+      stages.forEach(stage => stageSkip[stage] = 0);
       // HTML
       let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
-      html += `<div class="timeline-grid" style="--stage-count:${stages.length}" data-date="${date}" data-dayidx="${dayIdx}" id="timeline-grid-${dayIdx}">`;
-
+      html += `<div class="timeline-grid-wrap"><div class="timeline-grid" style="--stage-count:${stages.length}" data-date="${date}" data-dayidx="${dayIdx}" id="timeline-grid-${dayIdx}">`;
       // Header row
       html += `<div class="timeline-header"></div>`;
       for (const stage of stages) {
         html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
       }
-
-      // Build slot rows
+      // Slot rows
       for (let row = 0; row < slots.length; ++row) {
         html += `<div class="timeline-time" data-time="${slots[row]}">${slots[row]}</div>`;
-        for (let st = 0; st < stages.length; ++st) {
-          const stage = stages[st];
-          const stEvents = stageMap[stage] || [];
-          const eventsInSlot = getEventsInSlot(stEvents, slotStarts[row], slotEnds[row]);
-          html += `<div class="timeline-cell" data-stage="${stage}" data-time="${slots[row]}">`;
-          if (eventsInSlot.length > 0) {
-            // Sort events by start time for consistent display
-            eventsInSlot.sort((a, b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
-            for (const ev of eventsInSlot) {
-              html += `<div class="timeline-cell-inner event stage-${ev.stage.toLowerCase()}" title="${ev.title}">
-                <div class="event-title">${ev.title}</div>
-                <div class="event-time">${ev.start}${ev.end!==ev.start?` &ndash; ${ev.end}`:''}</div>
-                ${ev.extra_info?`<div class="event-info">${ev.extra_info}</div>`:''}
-              </div>`;
-            }
+        for (const stage of stages) {
+          // Rowspan skipping
+          if (stageSkip[stage] > 0) {
+            stageSkip[stage]--;
+            continue;
           }
-          html += `</div>`;
+          const blocksHere = (stageSlotBlock[stage][row] || []);
+          if (blocksHere.length > 0) {
+            // Overlapping events: render all side by side, each with correct rowspan
+            html += `<div class="timeline-cell" style="padding:0; position:relative;">`;
+            html += `<div class="event-stack" style="height:100%;">`;
+            for (const block of blocksHere) {
+              const height = `auto`;
+              html += `<div class="timeline-event stage-${stage.toLowerCase()}" style="flex:1 1 0; height:${height}; grid-row: span ${block.span}; z-index:3;" title="${block.ev.title}" data-event-idx="${block.blockIdx}" data-stage="${stage}" data-row="${row}" data-span="${block.span}">
+                <div class="event-title">${block.ev.title}</div>
+                <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
+                ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
+              </div>`;
+              if (block.span > 1) stageSkip[stage] = block.span-1;
+            }
+            html += `</div></div>`;
+          } else {
+            html += `<div class="timeline-cell"></div>`;
+          }
         }
       }
-
-      html += `</div>`;
+      html += `</div></div>`;
       return html;
     }
-
     // For the "now" line
     function setNowLine() {
       const now = new Date();
@@ -273,44 +314,36 @@
       const mm = (now.getMonth()+1).toString().padStart(2,'0');
       const dd = now.getDate().toString().padStart(2,'0');
       const todayStr = `${yyyy}-${mm}-${dd}`;
-
       // Find grid for today
       const grids = document.querySelectorAll('.timeline-grid');
       grids.forEach(grid => {
         const date = grid.getAttribute('data-date');
         // Remove any existing now-line
-        grid.querySelectorAll('.now-line').forEach(el=>el.remove());
+        grid.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
         if (date !== todayStr) return;
-
         // Get all slot time divs
         const timeDivs = Array.from(grid.querySelectorAll('.timeline-time'));
         if (timeDivs.length === 0) return;
-
         // Find position for "now"
         const curMinutes = now.getHours()*60 + now.getMinutes();
         let found = false;
         for (let i = 0; i < timeDivs.length-1; ++i) {
           const slotStart = timeToMinutes(timeDivs[i].dataset.time);
           const slotEnd = timeToMinutes(timeDivs[i+1].dataset.time);
-
           if (curMinutes >= slotStart && curMinutes < slotEnd) {
             // Interpolate position within slot
             const slotDiv = timeDivs[i];
             const nextSlotDiv = timeDivs[i+1];
-            const slotRect = slotDiv.getBoundingClientRect();
-            const nextSlotRect = nextSlotDiv.getBoundingClientRect();
-            const parentRect = grid.getBoundingClientRect();
-
+            const parentRect = grid.parentElement.getBoundingClientRect();
             const percent = (curMinutes - slotStart) / (slotEnd - slotStart);
             const slotTop = slotDiv.offsetTop;
             const slotHeight = nextSlotDiv.offsetTop - slotDiv.offsetTop;
             const nowTop = slotTop + percent * slotHeight;
-
             // Insert line
             const line = document.createElement('div');
             line.className = 'now-line';
             line.style.top = nowTop+'px';
-            grid.appendChild(line);
+            grid.parentElement.appendChild(line);
             found = true;
             break;
           }
@@ -321,11 +354,10 @@
           const line = document.createElement('div');
           line.className = 'now-line';
           line.style.top = (lastDiv.offsetTop + lastDiv.offsetHeight)+'px';
-          grid.appendChild(line);
+          grid.parentElement.appendChild(line);
         }
       });
     }
-
     fetch('events.json')
       .then(r => r.json())
       .then(events => {
@@ -346,8 +378,6 @@
           "<p style='color:red'>Kon evenementen niet laden. Controleer het bestand 'events.json'.</p>";
         console.error(err);
       });
-
-    // Also update on resize (for correct line placement)
     window.addEventListener('resize', () => setTimeout(setNowLine, 300));
   </script>
 </body>
