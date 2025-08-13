@@ -16,7 +16,6 @@
     .timeline-grid {
       display: grid;
       grid-template-columns: 80px repeat(var(--stage-count), 1fr);
-      /* rows set dynamically */
       border-radius: 8px;
       background: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
@@ -57,33 +56,40 @@
       box-sizing: border-box;
       position: relative;
       background: #fff;
-    }
-    .cell-event-stack {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
-      gap: 0.2em;
-      height: 100%;
-      pointer-events: none; /* allow events to bleed visually outside the stack */
-    }
-    .timeline-event {
-      border-radius: 5px;
-      border: 2.5px solid #1abc9c;
-      background: #eafaf5;
-      padding: 0.3em 0.5em 0.3em 0.7em;
-      margin: 0.04em 0;
-      font-size: 1em;
-      font-weight: 500;
-      position: absolute;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      overflow: visible; /* allow event blocks to overflow for rounded corners */
+      padding: 0;
       display: flex;
       flex-direction: column;
+      justify-content: stretch;
+    }
+    .event-stack {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      gap: 0.2em;
+      align-items: stretch;
+      position: absolute;
+      left: 0; right: 0; top: 0; bottom: 0;
+      pointer-events: none; /* event blocks take pointer events, not stack */
+    }
+    .timeline-event {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      margin: 0.1em 0.1em;
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1.5px solid #ddd;
+      min-width: 0;
+      background: #fafcff;
+      position: relative;
+      z-index: 3;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       pointer-events: auto;
     }
-    .timeline-event.stage-kaatsspelplein { border-color: #1abc9c; background: #eafaf5;}
-    .timeline-event.stage-viersprong { border-color: #e67e22; background: #fcf3eb;}
-    .timeline-event.stage-algemeen { border-color: #2e3d51; background: #f2f5fa;}
+    .timeline-event.stage-kaatsspelplein { border-left: 5px solid #1abc9c; background: #eafaf5; border-color: #1abc9c;}
+    .timeline-event.stage-viersprong { border-left: 5px solid #e67e22; background: #fcf3eb; border-color: #e67e22;}
+    .timeline-event.stage-algemeen { border-left: 5px solid #2e3d51; background: #f2f5fa; border-color: #2e3d51;}
     .event-title { font-weight: bold; font-size: 1.01em; }
     .event-info { font-size: 0.95em; color: #445; }
     .event-time { font-size: 0.92em; font-style: italic; color: #555; }
@@ -139,9 +145,7 @@
     }
     // For each stage, build a list of event blocks: startSlot, span, and overlap index.
     function buildStageBlocks(stageEvents, slots) {
-      // Sort events by start time
       stageEvents = stageEvents.slice().sort((a, b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
-      // Build blocks: startSlot, span
       const blocks = stageEvents.map(ev => {
         const sM = timeToMinutes(padTime(ev.start));
         const eM = timeToMinutes(padTime(ev.end));
@@ -181,7 +185,6 @@
       // For each stage, build blocks
       const stageBlocks={};
       stages.forEach(stage=>{stageBlocks[stage]=buildStageBlocks(stageMap[stage],slots);});
-
       // Build grid
       let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
       html += `<div class="timeline-grid-wrap" style="position:relative;"><div class="timeline-grid" style="--stage-count:${stages.length}; grid-template-rows: repeat(${numRows+1}, 1fr);" data-date="${date}" id="timeline-grid-${dayIdx}">`;
@@ -192,37 +195,82 @@
         html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
       }
 
-      // Time labels and empty cells
+      // Time labels and event cell containers
       for(let row=0;row<slots.length;++row){
         html += `<div class="timeline-time" data-time="${slots[row]}" style="grid-row:${row+2}; grid-column:1;">${slots[row]}</div>`;
         for(let col=0;col<stages.length;++col){
-          html += `<div class="timeline-cell" style="grid-row:${row+2};grid-column:${col+2}; position:relative;"></div>`;
+          html += `<div class="timeline-cell" style="grid-row:${row+2};grid-column:${col+2};" data-stage="${stages[col]}" data-row="${row}"></div>`;
         }
       }
 
-      // Render event blocks absolutely positioned on top of grid cells
+      // Render event blocks inside their correct cell containers, using flex layout for overlaps
       for(let si=0;si<stages.length;++si){
         const stage = stages[si];
+        // Group blocks by startIdx
+        const byRow = {};
         for(const block of stageBlocks[stage]){
-          // Position
-          const leftPct = block.overlapIdx * (100 / block.overlapTotal);
-          const widthPct = 100 / block.overlapTotal;
-          html += `<div class="timeline-event stage-${stage.toLowerCase()}"
-            style="
-              grid-row: ${block.startIdx+2} / span ${block.span};
-              grid-column: ${si+2};
-              left: ${leftPct}%; width: ${widthPct}%; top: 0; height: 100%; z-index:3;
-            "
-            title="${block.ev.title}">
-            <div class="event-title">${block.ev.title}</div>
-            <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
-            ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
-          </div>`;
+          if(!byRow[block.startIdx]) byRow[block.startIdx]=[];
+          byRow[block.startIdx].push(block);
+        }
+        for(const row in byRow){
+          const cell = `<div></div>`; // Placeholder, not used
+          // We'll inject the stack below with JS after html generation
+          // Instead, we mark the cell for later
+          html += `<!--EVENT_STACK_${stage}_${row}-->`;
         }
       }
 
       html += `</div></div>`;
       return html;
+    }
+
+    function injectEventsToCells(events, stages, dayIdx=0) {
+      // For each day
+      const dayGrids = document.querySelectorAll(`.timeline-grid[data-date]`);
+      dayGrids.forEach(grid=>{
+        const date = grid.getAttribute('data-date');
+        // Find all cells
+        const cells = grid.querySelectorAll('.timeline-cell');
+        // For each cell, find which events start here and render them in a flexbox stack
+        cells.forEach(cell=>{
+          const stage = cell.getAttribute('data-stage');
+          const row = parseInt(cell.getAttribute('data-row'),10);
+          if(!stage||isNaN(row)) return;
+          // Find events for this stage and row
+          const dayEvents = events.filter(ev=>ev.date===date && ev.stage===stage);
+          if(dayEvents.length===0) return;
+          // Regenerate slot list
+          const slots = createTimeSlots(events.filter(ev=>ev.date===date));
+          const blocks = buildStageBlocks(dayEvents, slots);
+          // Find blocks starting at this row
+          const blocksHere = blocks.filter(b=>b.startIdx===row);
+          if(blocksHere.length>0){
+            // Render stack
+            const stack = document.createElement('div');
+            stack.className = 'event-stack';
+            stack.style.position = 'absolute';
+            stack.style.left = stack.style.top = stack.style.right = stack.style.bottom = 0;
+            blocksHere.forEach(block=>{
+              const div = document.createElement('div');
+              div.className = `timeline-event stage-${stage.toLowerCase()}`;
+              div.style.flex = `1 1 0`;
+              div.style.position = 'relative';
+              div.style.height = `calc(${block.span} * 100%)`;
+              div.style.zIndex = 3;
+              div.innerHTML = `
+                <div class="event-title">${block.ev.title}</div>
+                <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
+                ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
+              `;
+              // Use grid-row to span correct rows
+              div.style.gridRow = `span ${block.span}`;
+              div.style.height = `calc(${block.span} * 100%)`;
+              stack.appendChild(div);
+            });
+            cell.appendChild(stack);
+          }
+        });
+      });
     }
 
     // "Now" line logic for grid
@@ -265,6 +313,8 @@
         }
       });
     }
+
+    // Main loader
     fetch('events.json')
       .then(r=>r.json())
       .then(events=>{
@@ -276,6 +326,7 @@
           html+=renderDayGrid(date,evs,stages,dayIdx++);
         });
         container.innerHTML=html;
+        injectEventsToCells(events, getAllStages(events));
         setTimeout(setNowLine,200);
         setInterval(setNowLine,60*1000);
       })
