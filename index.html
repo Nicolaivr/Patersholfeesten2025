@@ -6,25 +6,24 @@
   <title>Patersholfeesten 2025 - Festival Tijdlijn</title>
   <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; color: #222; }
+    body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; color: #222;}
     header { background: #2e3d51; color: #fff; padding: 2rem 1rem 1rem 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
     header h1 { margin: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: 2px; }
     header p { margin: 0.5rem 0 0 0; font-size: 1.15rem; font-weight: 400; }
     .timeline-container { max-width: 1300px; margin: 2rem auto; padding: 0 1rem; }
     .timeline-date { font-size: 1.4rem; font-weight: 700; color: #2e3d51; margin: 2.5rem 0 1rem 0; border-left: 5px solid #2e3d51; padding-left: 0.8em; background: #ebeff5; }
-    .timeline-grid-wrap { position: relative; }
+    .timeline-grid-wrap { position: relative;}
     .timeline-grid {
       display: grid;
       grid-template-columns: 80px repeat(var(--stage-count), 1fr);
-      gap: 0;
       border-radius: 8px;
       background: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
       overflow: visible;
       position: relative;
     }
-    .timeline-header { background: #e3eaf4; color: #2e3d51; font-weight: 600; text-align: center; padding: 0.6em 0.2em; border-bottom: 1px solid #d9e3f0; font-size: 1.05rem; position: sticky; top: 0; z-index: 2; }
-    .timeline-time { background: #f5f7fb; font-weight: 600; font-size: 1.02em; color: #2e3d51; text-align: right; padding: 0.4em 0.8em 0.4em 0.2em; border-right: 1px solid #e3eaf4; border-bottom: 1px solid #e3eaf4; min-height: 2.5em; box-sizing: border-box; position: relative; z-index: 1; }
+    .timeline-header { background: #e3eaf4; color: #2e3d51; font-weight: 600; text-align: center; padding: 0.6em 0.2em; border-bottom: 1px solid #d9e3f0; font-size: 1.05rem; position: sticky; top: 0; z-index: 2;}
+    .timeline-time { background: #f5f7fb; font-weight: 600; font-size: 1.02em; color: #2e3d51; text-align: right; padding: 0.4em 0.8em 0.4em 0.2em; border-right: 1px solid #e3eaf4; border-bottom: 1px solid #e3eaf4; min-height: 2.5em; box-sizing: border-box; position: relative; z-index: 1;}
     .timeline-cell {
       border-bottom: 1px solid #e3eaf4;
       min-height: 2.5em;
@@ -34,15 +33,7 @@
       background: #fff;
       z-index: 1;
     }
-    .event-stack {
-      display: flex;
-      height: 100%;
-      gap: 0.2em;
-      align-items: stretch;
-      width: 100%;
-    }
     .timeline-event {
-      flex: 1 1 0;
       display: flex;
       flex-direction: column;
       margin: 0.1em 0.1em;
@@ -51,7 +42,11 @@
       border: 1px solid #ddd;
       min-width: 0;
       background: #fafcff;
-      position: relative;
+      position: absolute;
+      width: 96%;
+      height: 100%;
+      left: 2%;
+      top: 0;
       z-index: 3;
     }
     .timeline-event.stage-kaatsspelplein { border-left: 5px solid #1abc9c; background: #eafaf5; border-color: #1abc9c; }
@@ -60,7 +55,7 @@
     .event-title { font-weight: bold; font-size: 1.01em; }
     .event-info { font-size: 0.95em; color: #445; }
     .event-time { font-size: 0.92em; font-style: italic; color: #555; }
-    .now-line { position: absolute; left: 0; right: 0; height: 2.5px; background: red; z-index: 10; pointer-events: none; transition: top 0.2s; }
+    .now-line { position: absolute; left: 0; right: 0; height: 2.5px; background: red; z-index: 10; pointer-events: none; transition: top 0.2s;}
     @media (max-width: 800px) {
       .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.97rem; }
       header h1 { font-size: 2rem; }
@@ -82,7 +77,6 @@
     <div class="timeline-container" id="timeline"></div>
   </main>
   <script>
-    // Utility functions
     function padTime(t) {
       return t.length === 5 ? t : t.length === 4 ? '0' + t : t;
     }
@@ -133,70 +127,34 @@
       }
       return grouped;
     }
-    // For a stage, build a list of event blocks with startIdx, span, and overlap info
-    function calcStageBlocks(stageEvents, slots, slotMinutes) {
-      // Sort by start time
-      stageEvents = stageEvents.slice().sort((a,b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
-      // For each event, determine startIdx, span (in slots)
-      const blocks = [];
-      for (const ev of stageEvents) {
-        const startM = timeToMinutes(padTime(ev.start));
-        const endM = timeToMinutes(padTime(ev.end));
-        let startIdx = slots.findIndex(s => timeToMinutes(s) === startM);
-        if (startIdx === -1) {
-          startIdx = slots.findIndex(s => timeToMinutes(s) > startM) - 1;
-          if (startIdx < 0) startIdx = 0;
-        }
-        let endIdx = slots.findIndex(s => timeToMinutes(s) >= endM);
-        if (endIdx === -1) endIdx = slots.length;
-        const span = Math.max(1, endIdx - startIdx);
-        blocks.push({ev, startIdx, span});
-      }
-      // Now, handle overlaps: for each slot, build an array of overlapping events
-      const slotOverlaps = Array(slots.length).fill(0).map(()=>[]);
-      blocks.forEach((block, idx) => {
-        for (let i = block.startIdx; i < block.startIdx + block.span && i < slots.length; ++i) {
-          slotOverlaps[i].push(idx);
-        }
-      });
-      // For each block, determine its overlap index (column) and total overlaps
-      blocks.forEach((block, idx) => {
-        // Find max overlap in the block's range
-        let maxOverlap = 1;
-        let myCol = 0;
-        for (let i = block.startIdx; i < block.startIdx + block.span && i < slots.length; ++i) {
-          const overlaps = slotOverlaps[i];
-          maxOverlap = Math.max(maxOverlap, overlaps.length);
-          myCol = Math.max(myCol, overlaps.indexOf(idx));
-        }
-        block.overlapIdx = myCol;
-        block.overlapCount = maxOverlap;
-      });
-      return blocks;
-    }
-
     function renderDayGrid(date, events, stages, slotMinutes = 30, dayIdx = 0) {
       const slots = createTimeSlots(events, slotMinutes);
+      const numRows = slots.length;
       const stageMap = {};
       stages.forEach(s => stageMap[s] = []);
       for (const ev of events) {
         stageMap[ev.stage].push(ev);
       }
-      // For each stage, build block info
-      const stageBlocks = {};
-      stages.forEach(stage => {
-        stageBlocks[stage] = calcStageBlocks(stageMap[stage], slots, slotMinutes);
-      });
-      // For each stage, prepare a per-slot skip counter
+      // For each stage, build a per-slot skip counter
       const skip = {};
       stages.forEach(stage => skip[stage]=0);
       // For each stage, per slot, find which block (if any) starts here
       const stageBlockStarts = {};
       stages.forEach(stage => {
         stageBlockStarts[stage] = {};
-        stageBlocks[stage].forEach((block, idx) => {
-          stageBlockStarts[stage][block.startIdx] = stageBlockStarts[stage][block.startIdx] || [];
-          stageBlockStarts[stage][block.startIdx].push({...block, blockIdx: idx});
+        stageMap[stage].forEach((ev, idx) => {
+          const startM = timeToMinutes(padTime(ev.start));
+          const endM = timeToMinutes(padTime(ev.end));
+          let startIdx = slots.findIndex(s => timeToMinutes(s) === startM);
+          if (startIdx === -1) {
+            startIdx = slots.findIndex(s => timeToMinutes(s) > startM) - 1;
+            if (startIdx < 0) startIdx = 0;
+          }
+          let endIdx = slots.findIndex(s => timeToMinutes(s) >= endM);
+          if (endIdx === -1) endIdx = slots.length;
+          const span = Math.max(1, endIdx - startIdx);
+          if (!stageBlockStarts[stage][startIdx]) stageBlockStarts[stage][startIdx] = [];
+          stageBlockStarts[stage][startIdx].push({ev, span});
         });
       });
 
@@ -220,20 +178,17 @@
           }
           const blocksHere = (stageBlockStarts[stage][row] || []);
           if (blocksHere.length > 0) {
-            // Overlapping events: render all side by side, each with correct rowspan
+            // If overlapping, render side by side, else just one
             html += `<div class="timeline-cell" style="padding:0; position:relative;">`;
-            html += `<div class="event-stack" style="height:100%;">`;
-            for (const block of blocksHere) {
-              html += `<div class="timeline-event stage-${stage.toLowerCase()}" style="flex:1 1 0; height:auto;" title="${block.ev.title}" data-event-idx="${block.blockIdx}" data-stage="${stage}" data-row="${row}" data-span="${block.span}" 
-                ${block.span > 1 ? `style="grid-row: span ${block.span};"` : ""} 
-                data-overlap-idx="${block.overlapIdx}" data-overlap-count="${block.overlapCount}">
+            blocksHere.forEach(block => {
+              html += `<div class="timeline-event stage-${stage.toLowerCase()}" style="position:absolute; top:0; left:0; right:0; bottom:0; height:calc(100% * ${block.span}); z-index:3;">
                 <div class="event-title">${block.ev.title}</div>
                 <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
                 ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
               </div>`;
               if (block.span > 1) skip[stage] = block.span-1;
-            }
-            html += `</div></div>`;
+            });
+            html += `</div>`;
           } else {
             html += `<div class="timeline-cell"></div>`;
           }
