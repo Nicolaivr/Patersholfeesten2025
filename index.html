@@ -12,32 +12,81 @@
     header p { margin: 0.5rem 0 0 0; font-size: 1.15rem; font-weight: 400; }
     .timeline-container { max-width: 1300px; margin: 2rem auto; padding: 0 1rem; }
     .timeline-date { font-size: 1.4rem; font-weight: 700; color: #2e3d51; margin: 2.5rem 0 1rem 0; border-left: 5px solid #2e3d51; padding-left: 0.8em; background: #ebeff5; }
-    .timeline-table-wrap { position: relative; }
-    table.timeline-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); overflow: hidden; }
-    .timeline-table th, .timeline-table td { padding: 0.25em 0.4em; text-align: left; }
-    .timeline-table th { background: #e3eaf4; color: #2e3d51; font-weight: 600; font-size: 1.05rem; border-bottom: 1px solid #d9e3f0; }
-    .timeline-table td { border-bottom: 1px solid #e3eaf4; min-width: 120px; min-height: 2.5em; background: #fff; position: relative;}
-    .timeline-table td.timecol { font-weight: 600; background: #f5f7fb; color: #2e3d51; min-width: 60px; text-align: right; border-right: 1px solid #e3eaf4; }
-    .event-block {
+    .timeline-grid-wrap { position: relative; }
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: 80px repeat(var(--stage-count), 1fr);
+      /* rows set dynamically */
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      overflow: visible;
+      position: relative;
+      min-width: 0;
+    }
+    .timeline-header {
+      background: #e3eaf4;
+      color: #2e3d51;
+      font-weight: 600;
+      text-align: center;
+      padding: 0.6em 0.2em;
+      border-bottom: 1px solid #d9e3f0;
+      font-size: 1.05rem;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .timeline-time {
+      background: #f5f7fb;
+      font-weight: 600;
+      font-size: 1.02em;
+      color: #2e3d51;
+      text-align: right;
+      padding: 0.4em 0.8em 0.4em 0.2em;
+      border-right: 1px solid #e3eaf4;
+      border-bottom: 1px solid #e3eaf4;
+      min-height: 2.5em;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 1;
+      grid-column: 1;
+    }
+    .timeline-cell {
+      border-bottom: 1px solid #e3eaf4;
+      min-height: 2.5em;
+      box-sizing: border-box;
+      position: relative;
+      background: #fff;
+    }
+    .cell-event-stack {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      gap: 0.2em;
+      height: 100%;
+      pointer-events: none; /* allow events to bleed visually outside the stack */
+    }
+    .timeline-event {
       border-radius: 5px;
       border: 2.5px solid #1abc9c;
       background: #eafaf5;
-      padding: 0.3em 0.6em;
-      margin: 0.1em 0;
+      padding: 0.3em 0.5em 0.3em 0.7em;
+      margin: 0.04em 0;
       font-size: 1em;
       font-weight: 500;
-      position: relative;
-      z-index: 3;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      position: absolute;
       overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
     }
-    .event-block.stage-kaatsspelplein { border-color: #1abc9c; background: #eafaf5;}
-    .event-block.stage-viersprong { border-color: #e67e22; background: #fcf3eb;}
-    .event-block.stage-algemeen { border-color: #2e3d51; background: #f2f5fa;}
+    .timeline-event.stage-kaatsspelplein { border-color: #1abc9c; background: #eafaf5;}
+    .timeline-event.stage-viersprong { border-color: #e67e22; background: #fcf3eb;}
+    .timeline-event.stage-algemeen { border-color: #2e3d51; background: #f2f5fa;}
     .event-title { font-weight: bold; font-size: 1.01em; }
     .event-info { font-size: 0.95em; color: #445; }
     .event-time { font-size: 0.92em; font-style: italic; color: #555; }
-    .event-stack { display: flex; gap: 0.4em;}
     .now-line {
       position: absolute;
       left: 0; right: 0;
@@ -48,11 +97,11 @@
       transition: top 0.2s;
     }
     @media (max-width: 900px) {
-      .timeline-table th, .timeline-table td { font-size: 0.91rem; }
+      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.91rem; }
     }
     @media (max-width: 600px) {
-      .timeline-table, .timeline-table thead, .timeline-table tbody, .timeline-table tr, .timeline-table th, .timeline-table td { font-size: 0.88rem;}
-      .timeline-table td { min-width: 50px; }
+      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.87rem;}
+      .timeline-cell { min-height: 2em; }
     }
   </style>
 </head>
@@ -122,94 +171,97 @@
       });
       return blocks;
     }
-    function renderDayTable(date, events, stages, dayIdx=0) {
+
+    function renderDayGrid(date, events, stages, dayIdx=0) {
       const slots = createTimeSlots(events);
+      const numRows = slots.length;
       const stageMap={};
       stages.forEach(s=>stageMap[s]=[]);
       for(const ev of events){ stageMap[ev.stage].push(ev);}
       // For each stage, build blocks
       const stageBlocks={};
       stages.forEach(stage=>{stageBlocks[stage]=buildStageBlocks(stageMap[stage],slots);});
-      // Build per stage: for each row, a skip counter
-      const skip={}; stages.forEach(stage=>skip[stage]=0);
-      // For each stage, per slot, find which block(s) start here
-      const stageBlockStarts={};
-      stages.forEach(stage=>{
-        stageBlockStarts[stage]={};
-        stageBlocks[stage].forEach((block,idx)=>{
-          if(!stageBlockStarts[stage][block.startIdx])stageBlockStarts[stage][block.startIdx]=[];
-          stageBlockStarts[stage][block.startIdx].push({...block,blockIdx:idx});
-        });
-      });
 
+      // Build grid
       let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
-      html += `<div class="timeline-table-wrap" style="position:relative;"><table class="timeline-table" data-date="${date}" id="timeline-table-${dayIdx}"><thead><tr><th></th>${stages.map(s=>`<th>${s.charAt(0).toUpperCase()+s.slice(1)}</th>`).join('')}</tr></thead><tbody>`;
+      html += `<div class="timeline-grid-wrap" style="position:relative;"><div class="timeline-grid" style="--stage-count:${stages.length}; grid-template-rows: repeat(${numRows+1}, 1fr);" data-date="${date}" id="timeline-grid-${dayIdx}">`;
 
-      for(let row=0;row<slots.length;++row){
-        html+=`<tr>`;
-        html+=`<td class="timecol" data-time="${slots[row]}">${slots[row]}</td>`;
-        for(const stage of stages){
-          if(skip[stage]>0){skip[stage]--;html+=`<td></td>`;continue;}
-          const blocksHere=(stageBlockStarts[stage][row]||[]);
-          if(blocksHere.length>0){
-            // Overlapping events: side-by-side in a flex container
-            html+=`<td style="vertical-align:top;position:relative;">`;
-            html+=`<div class="event-stack">`;
-            for(const block of blocksHere){
-              html+=`<div class="event-block stage-${stage.toLowerCase()}" style="width:${100/block.overlapTotal}%;margin-left:${block.overlapIdx*2}px;" rowspan="${block.span}">
-                <div class="event-title">${block.ev.title}</div>
-                <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
-                ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
-              </div>`;
-              if(block.span>1)skip[stage]=block.span-1;
-            }
-            html+=`</div></td>`;
-          }else{
-            html+=`<td></td>`;
-          }
-        }
-        html+=`</tr>`;
+      // Header row
+      html += `<div class="timeline-header"></div>`;
+      for (const stage of stages) {
+        html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
       }
-      html+=`</tbody></table></div>`;
+
+      // Time labels and empty cells
+      for(let row=0;row<slots.length;++row){
+        html += `<div class="timeline-time" data-time="${slots[row]}" style="grid-row:${row+2}; grid-column:1;">${slots[row]}</div>`;
+        for(let col=0;col<stages.length;++col){
+          html += `<div class="timeline-cell" style="grid-row:${row+2};grid-column:${col+2}; position:relative;"></div>`;
+        }
+      }
+
+      // Render event blocks absolutely positioned on top of grid cells
+      for(let si=0;si<stages.length;++si){
+        const stage = stages[si];
+        for(const block of stageBlocks[stage]){
+          // Position
+          const leftPct = block.overlapIdx * (100 / block.overlapTotal);
+          const widthPct = 100 / block.overlapTotal;
+          html += `<div class="timeline-event stage-${stage.toLowerCase()}"
+            style="
+              grid-row: ${block.startIdx+2} / span ${block.span};
+              grid-column: ${si+2};
+              left: ${leftPct}%; width: ${widthPct}%; top: 0; height: 100%; z-index:3;
+            "
+            title="${block.ev.title}">
+            <div class="event-title">${block.ev.title}</div>
+            <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
+            ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
+          </div>`;
+        }
+      }
+
+      html += `</div></div>`;
       return html;
     }
-    // "Now" line logic for tables
+
+    // "Now" line logic for grid
     function setNowLine() {
       const now=new Date(),yyyy=now.getFullYear(),mm=(now.getMonth()+1).toString().padStart(2,'0'),dd=now.getDate().toString().padStart(2,'0');
       const todayStr=`${yyyy}-${mm}-${dd}`;
-      const tables=document.querySelectorAll('.timeline-table');
-      tables.forEach(table=>{
-        const date=table.getAttribute('data-date');
-        table.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
+      const grids=document.querySelectorAll('.timeline-grid');
+      grids.forEach(grid=>{
+        const date=grid.getAttribute('data-date');
+        grid.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
         if(date!==todayStr)return;
-        const timeTds=Array.from(table.querySelectorAll('td.timecol'));
-        if(timeTds.length===0)return;
+        const timeDivs=Array.from(grid.querySelectorAll('.timeline-time'));
+        if(timeDivs.length===0)return;
         const curMins=now.getHours()*60+now.getMinutes();
         let found=false;
-        for(let i=0;i<timeTds.length-1;++i){
-          const slotStart=timeToMinutes(timeTds[i].dataset.time);
-          const slotEnd=timeToMinutes(timeTds[i+1].dataset.time);
+        for(let i=0;i<timeDivs.length-1;++i){
+          const slotStart=timeToMinutes(timeDivs[i].dataset.time);
+          const slotEnd=timeToMinutes(timeDivs[i+1].dataset.time);
           if(curMins>=slotStart&&curMins<slotEnd){
-            const slotTd=timeTds[i];
-            const nextSlotTd=timeTds[i+1];
+            const slotDiv=timeDivs[i];
+            const nextSlotDiv=timeDivs[i+1];
             const percent=(curMins-slotStart)/(slotEnd-slotStart);
-            const slotTop=slotTd.offsetTop;
-            const slotHeight=nextSlotTd.offsetTop-slotTd.offsetTop;
+            const slotTop=slotDiv.offsetTop;
+            const slotHeight=nextSlotDiv.offsetTop-slotDiv.offsetTop;
             const nowTop=slotTop+percent*slotHeight;
             const line=document.createElement('div');
             line.className='now-line';
             line.style.top=nowTop+'px';
-            table.parentElement.appendChild(line);
+            grid.parentElement.appendChild(line);
             found=true;
             break;
           }
         }
         if(!found){
-          const lastTd=timeTds[timeTds.length-1];
+          const lastDiv=timeDivs[timeDivs.length-1];
           const line=document.createElement('div');
           line.className='now-line';
-          line.style.top=(lastTd.offsetTop+lastTd.offsetHeight)+'px';
-          table.parentElement.appendChild(line);
+          line.style.top=(lastDiv.offsetTop+lastDiv.offsetHeight)+'px';
+          grid.parentElement.appendChild(line);
         }
       });
     }
@@ -221,7 +273,7 @@
         let html='',dayIdx=0;
         Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).forEach(([date,evs])=>{
           const stages=getAllStages(evs);
-          html+=renderDayTable(date,evs,stages,dayIdx++);
+          html+=renderDayGrid(date,evs,stages,dayIdx++);
         });
         container.innerHTML=html;
         setTimeout(setNowLine,200);
