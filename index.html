@@ -1,238 +1,340 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Patersholfeesten 2025 — Verticale Tijdlijn</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Patersholfeesten 2025 - Festival Tijdlijn</title>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
   <style>
-    :root { --header-h: 68px; --accent: #2e3d51; }
-    html,body { height: 100%; margin: 0; }
-    body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; color:#111; }
-
-    header {
-      height: var(--header-h);
-      background: var(--accent);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      padding: 0 1rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      gap: 1rem;
-    }
-    header h1 { margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: 1px; }
-    header p { margin: 0; font-size: 0.9rem; opacity: 0.9; }
-
-    /* calendar container fills remaining viewport */
-    #calendar {
-      height: calc(100vh - var(--header-h));
-      width: 100%;
-      box-sizing: border-box;
-      padding: 0.5rem;
-      background: #fff;
-    }
-
-    /* small visual tweaks */
-    .fc .fc-event { white-space: normal; color: inherit; }
-    .fc .fc-col-header-cell-cushion { font-weight:600; }
-
-    /* error box */
-    .error-box {
-      max-width: 1100px;
-      margin: 1rem auto;
-      background: #fff6f6;
-      border: 1px solid #f0a8a8;
-      color: #7a1b1b;
-      padding: 1rem;
+    body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; color: #222;}
+    header { background: #2e3d51; color: #fff; padding: 2rem 1rem 1rem 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
+    header h1 { margin: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: 2px; }
+    header p { margin: 0.5rem 0 0 0; font-size: 1.15rem; font-weight: 400; }
+    .timeline-container { max-width: 1300px; margin: 2rem auto; padding: 0 1rem; }
+    .timeline-date { font-size: 1.4rem; font-weight: 700; color: #2e3d51; margin: 2.5rem 0 1rem 0; border-left: 5px solid #2e3d51; padding-left: 0.8em; background: #ebeff5; }
+    .timeline-grid-wrap { position: relative; }
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: 80px repeat(var(--stage-count), 1fr);
       border-radius: 8px;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.03);
-      font-size: 0.95rem;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      overflow: visible;
+      position: relative;
+      min-width: 0;
     }
-    .btn {
-      display:inline-block;padding:0.45rem 0.75rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;margin-right:0.5rem;
+    .timeline-header {
+      background: #e3eaf4;
+      color: #2e3d51;
+      font-weight: 600;
+      text-align: center;
+      padding: 0.6em 0.2em;
+      border-bottom: 1px solid #d9e3f0;
+      font-size: 1.05rem;
+      position: sticky;
+      top: 0;
+      z-index: 2;
     }
-    .btn.secondary { background:transparent;color:var(--accent);border:1px solid var(--accent); }
+    .timeline-time {
+      background: #f5f7fb;
+      font-weight: 600;
+      font-size: 1.02em;
+      color: #2e3d51;
+      text-align: right;
+      padding: 0.4em 0.8em 0.4em 0.2em;
+      border-right: 1px solid #e3eaf4;
+      border-bottom: 1px solid #e3eaf4;
+      min-height: 2.5em;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 1;
+      grid-column: 1;
+    }
+    .timeline-cell {
+      border-bottom: 1px solid #e3eaf4;
+      min-height: 2.5em;
+      box-sizing: border-box;
+      position: relative;
+      background: #fff;
+      overflow: visible; /* allow event blocks to overflow for rounded corners */
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: stretch;
+    }
+    .event-stack {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      gap: 0.2em;
+      align-items: stretch;
+      position: absolute;
+      left: 0; right: 0; top: 0; bottom: 0;
+      pointer-events: none; /* event blocks take pointer events, not stack */
+    }
+    .timeline-event {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      margin: 0.1em 0.1em;
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1.5px solid #ddd;
+      min-width: 0;
+      background: #fafcff;
+      position: relative;
+      z-index: 3;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      pointer-events: auto;
+    }
+    .timeline-event.stage-kaatsspelplein { border-left: 5px solid #1abc9c; background: #eafaf5; border-color: #1abc9c;}
+    .timeline-event.stage-viersprong { border-left: 5px solid #e67e22; background: #fcf3eb; border-color: #e67e22;}
+    .timeline-event.stage-algemeen { border-left: 5px solid #2e3d51; background: #f2f5fa; border-color: #2e3d51;}
+    .event-title { font-weight: bold; font-size: 1.01em; }
+    .event-info { font-size: 0.95em; color: #445; }
+    .event-time { font-size: 0.92em; font-style: italic; color: #555; }
+    .now-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2.5px;
+      background: red;
+      z-index: 10;
+      pointer-events: none;
+      transition: top 0.2s;
+    }
+    @media (max-width: 900px) {
+      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.91rem; }
+    }
+    @media (max-width: 600px) {
+      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.87rem;}
+      .timeline-cell { min-height: 2em; }
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Patersholfeesten 2025</h1>
-    <p>Verticale tijdslijn — Overzicht per podium (tijd onder elkaar)</p>
+    <p>Festival Tijdlijn &mdash; Overzicht per dag en per podium</p>
   </header>
-
-  <main id="main">
-    <div id="calendar" aria-live="polite"></div>
-    <div id="error" style="display:none;"></div>
+  <main>
+    <div class="timeline-container" id="timeline"></div>
   </main>
-
-  <!-- IMPORTANT: load core first, then timegrid, then resource-timegrid (matching versions) -->
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timegrid@6.1.19/index.global.min.js"></script>
-  <!-- locales (optional) -->
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/locales-all.global.min.js"></script>
-
   <script>
-    // ---------- configuration ----------
-    const stages = [
-      { id: 'kaatsspelplein', title: 'Kaatsspelplein' },
-      { id: 'viersprong', title: 'Viersprong' },
-      { id: 'algemeen', title: 'Algemeen' }
-    ];
+    const slotMinutes = 30;
+    function padTime(t) { return t.length === 5 ? t : t.length === 4 ? '0'+t : t; }
+    function timeToMinutes(t) { const [h,m]=t.split(':').map(Number); return h*60+m; }
+    function minutesToTime(m) { const h=Math.floor(m/60),mm=m%60; return h.toString().padStart(2,'0')+':'+mm.toString().padStart(2,'0'); }
+    function createTimeSlots(events) {
+      let min='24:00',max='00:00';
+      for(const ev of events){ if(padTime(ev.start)<min)min=padTime(ev.start); if(padTime(ev.end)>max)max=padTime(ev.end);}
+      let slots=[],cur=timeToMinutes(min),end=timeToMinutes(max);
+      while(cur<=end){ slots.push(minutesToTime(cur)); cur+=slotMinutes;}
+      return slots;
+    }
+    function getAllStages(events) {
+      const set=new Set(events.map(ev=>ev.stage));
+      const order=["kaatsspelplein","viersprong","algemeen"];
+      const arr=Array.from(set);
+      arr.sort((a,b)=>{const ai=order.indexOf(a),bi=order.indexOf(b);if(ai==-1&&bi==-1)return a.localeCompare(b);if(ai==-1)return 1;if(bi==-1)return -1;return ai-bi;});
+      return arr;
+    }
+    function groupEventsByDate(events) {
+      const grouped={};
+      for(const ev of events){ if(!grouped[ev.date])grouped[ev.date]=[]; grouped[ev.date].push(ev);}
+      return grouped;
+    }
+    // For each stage, build a list of event blocks: startSlot, span, and overlap index.
+    function buildStageBlocks(stageEvents, slots) {
+      stageEvents = stageEvents.slice().sort((a, b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
+      const blocks = stageEvents.map(ev => {
+        const sM = timeToMinutes(padTime(ev.start));
+        const eM = timeToMinutes(padTime(ev.end));
+        let startIdx = slots.findIndex(s => timeToMinutes(s) === sM);
+        if (startIdx === -1) startIdx = slots.findIndex(s => timeToMinutes(s) > sM) - 1;
+        if (startIdx<0) startIdx=0;
+        let endIdx = slots.findIndex(s => timeToMinutes(s) >= eM);
+        if (endIdx === -1) endIdx = slots.length;
+        const span = Math.max(1, endIdx - startIdx);
+        return {ev, startIdx, span};
+      });
+      // For overlap: for each slot, track what blocks are present
+      const slotBlocks = Array(slots.length).fill(0).map(()=>[]);
+      blocks.forEach((block, idx) => {
+        for(let i=block.startIdx;i<block.startIdx+block.span && i<slots.length;++i) slotBlocks[i].push(idx);
+      });
+      // For each block, determine overlapIdx and totalOverlaps
+      blocks.forEach((block, idx) => {
+        let maxOverlap=1,myCol=0;
+        for(let i=block.startIdx;i<block.startIdx+block.span&&i<slots.length;++i){
+          const overlaps=slotBlocks[i];
+          maxOverlap=Math.max(maxOverlap,overlaps.length);
+          myCol=Math.max(myCol,overlaps.indexOf(idx));
+        }
+        block.overlapIdx=myCol;
+        block.overlapTotal=maxOverlap;
+      });
+      return blocks;
+    }
 
-    // ---------- helpers ----------
-    function normalizeTime(t) {
-      if (t === undefined || t === null || t === '') return null;
-      t = String(t).trim();
-      if (t.includes(':')) {
-        const parts = t.split(':').map(p => p.padStart(2,'0'));
-        while (parts.length < 3) parts.push('00');
-        return parts.slice(0,3).join(':');
+    function renderDayGrid(date, events, stages, dayIdx=0) {
+      const slots = createTimeSlots(events);
+      const numRows = slots.length;
+      const stageMap={};
+      stages.forEach(s=>stageMap[s]=[]);
+      for(const ev of events){ stageMap[ev.stage].push(ev);}
+      // For each stage, build blocks
+      const stageBlocks={};
+      stages.forEach(stage=>{stageBlocks[stage]=buildStageBlocks(stageMap[stage],slots);});
+      // Build grid
+      let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
+      html += `<div class="timeline-grid-wrap" style="position:relative;"><div class="timeline-grid" style="--stage-count:${stages.length}; grid-template-rows: repeat(${numRows+1}, 1fr);" data-date="${date}" id="timeline-grid-${dayIdx}">`;
+
+      // Header row
+      html += `<div class="timeline-header"></div>`;
+      for (const stage of stages) {
+        html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
       }
-      const digits = t.replace(/\D/g, '');
-      if (digits.length <= 2) return digits.padStart(2,'0') + ':00:00';
-      if (digits.length === 3) return digits.slice(0,1).padStart(2,'0') + ':' + digits.slice(1).padEnd(2,'0') + ':00';
-      return digits.slice(0,2) + ':' + digits.slice(2,4) + ':00';
-    }
-    function hourFromTime(timeStr) {
-      if (!timeStr) return null;
-      const h = parseInt(timeStr.split(':')[0], 10);
-      return Number.isFinite(h) ? h : null;
-    }
-    function addMinutesToIsoLocal(dtStr, minutes) {
-      const d = new Date(dtStr);
-      if (isNaN(d)) return dtStr;
-      d.setMinutes(d.getMinutes() + minutes);
-      const YYYY = d.getFullYear();
-      const MM = String(d.getMonth()+1).padStart(2,'0');
-      const DD = String(d.getDate()).padStart(2,'0');
-      const hh = String(d.getHours()).padStart(2,'0');
-      const mm = String(d.getMinutes()).padStart(2,'0');
-      const ss = String(d.getSeconds()).padStart(2,'0');
-      return `${YYYY}-${MM}-${DD}T${hh}:${mm}:${ss}`;
-    }
-    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    // ---------- error UI ----------
-    function showError(title, message, details) {
-      const c = document.getElementById('error');
-      c.style.display = 'block';
-      c.innerHTML = `
-        <div class="error-box" role="alert">
-          <strong>${escapeHtml(title)}</strong>
-          <div style="margin-top:0.4rem">${escapeHtml(message)}</div>
-          ${details ? `<pre style="margin-top:0.6rem;padding:0.6rem;background:#fff;border-radius:6px;border:1px solid #eee;white-space:pre-wrap">${escapeHtml(details)}</pre>` : ''}
-          <div style="margin-top:0.75rem">
-            <button id="retryBtn" class="btn">Retry</button>
-            <button id="tipsBtn" class="btn secondary">Tips</button>
-          </div>
-        </div>`;
-      document.getElementById('retryBtn').onclick = () => { c.style.display='none'; document.getElementById('calendar').innerHTML=''; init(); };
-      document.getElementById('tipsBtn').onclick = () => {
-        alert('Tips:\n• Plaats events.json in dezelfde map als deze HTML of wijzig het pad in de code.\n• Controleer DevTools Network voor HTTP/CORS fouten.\n• Zorg dat events.json valide JSON is (geen trailing commas, geen "...").');
-      };
-    }
-
-    // ---------- fetch + init ----------
-    async function fetchEventsJson() {
-      const url = 'events.json';
-      const resp = await fetch(url, { cache: 'no-store' });
-      if (!resp.ok) {
-        const txt = await resp.text().catch(()=> '');
-        throw new Error(`HTTP ${resp.status} ${resp.statusText}${txt ? ' — ' + txt : ''}`);
+      // Time labels and event cell containers
+      for(let row=0;row<slots.length;++row){
+        html += `<div class="timeline-time" data-time="${slots[row]}" style="grid-row:${row+2}; grid-column:1;">${slots[row]}</div>`;
+        for(let col=0;col<stages.length;++col){
+          html += `<div class="timeline-cell" style="grid-row:${row+2};grid-column:${col+2};" data-stage="${stages[col]}" data-row="${row}"></div>`;
+        }
       }
-      let data;
-      try { data = await resp.json(); }
-      catch(err) { throw new Error('Invalid JSON: ' + err.message); }
-      if (!Array.isArray(data)) throw new Error('Expected events.json to be a JSON array.');
-      return data;
+
+      // Render event blocks inside their correct cell containers, using flex layout for overlaps
+      for(let si=0;si<stages.length;++si){
+        const stage = stages[si];
+        // Group blocks by startIdx
+        const byRow = {};
+        for(const block of stageBlocks[stage]){
+          if(!byRow[block.startIdx]) byRow[block.startIdx]=[];
+          byRow[block.startIdx].push(block);
+        }
+        for(const row in byRow){
+          const cell = `<div></div>`; // Placeholder, not used
+          // We'll inject the stack below with JS after html generation
+          // Instead, we mark the cell for later
+          html += `<!--EVENT_STACK_${stage}_${row}-->`;
+        }
+      }
+
+      html += `</div></div>`;
+      return html;
     }
 
-    async function init() {
-      try {
-        const raw = await fetchEventsJson();
-
-        // normalize and map
-        const events = raw.map((ev, idx) => {
-          if (!ev.date) { console.warn('Skipping event without date:', ev); return null; }
-          const startNorm = normalizeTime(ev.start);
-          const endNorm = normalizeTime(ev.end);
-          const startIso = startNorm ? `${ev.date}T${startNorm}` : null;
-          let endIso = endNorm ? `${ev.date}T${endNorm}` : null;
-
-          if (!endIso && startIso) endIso = addMinutesToIsoLocal(startIso, 60);
-          if (startIso && endIso && startIso === endIso) endIso = addMinutesToIsoLocal(endIso, 1);
-
-          return {
-            id: `${(ev.title||'')}-${ev.date}-${ev.stage||''}-${idx}`,
-            resourceId: ev.stage,
-            title: (ev.title || '') + (ev.extra_info ? ' — ' + ev.extra_info : ''),
-            start: startIso || '',
-            end: endIso || ''
-          };
-        }).filter(x => x !== null);
-
-        if (events.length === 0) throw new Error('No valid events found in events.json.');
-
-        // compute vertical slot range from events
-        const starts = raw.map(ev => hourFromTime(normalizeTime(ev.start))).filter(x=>x!==null);
-        const ends = raw.map(ev => hourFromTime(normalizeTime(ev.end))).filter(x=>x!==null);
-        const minHour = starts.length ? Math.max(0, Math.min(...starts)) : 8;
-        const maxHourRaw = ends.length ? Math.max(...ends) : 22;
-        const maxHour = Math.min(24, maxHourRaw + 2);
-
-        // create calendar with resourceTimeGrid (vertical time)
-        // NOTE: do NOT use a plugins: [...] array when using the global bundles,
-        // the bundles already register the views / plugins on the FullCalendar global.
-        const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-          initialView: 'resourceTimeGridDay',
-          locale: 'nl',
-          height: '100%',
-          nowIndicator: true,
-
-          // resource area
-          resourceAreaHeaderContent: 'Podium',
-          resources: stages,
-
-          events,
-          // vertical time axis settings
-          slotMinTime: String(minHour).padStart(2,'0') + ':00:00',
-          slotMaxTime: String(maxHour).padStart(2,'0') + ':00:00',
-          slotDuration: '00:30:00',
-
-          headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'resourceTimeGridDay,resourceTimeGridWeek'
-          },
-          views: {
-            resourceTimeGridDay: { buttonText: 'Dag' },
-            resourceTimeGridWeek: { buttonText: 'Week' }
-          },
-
-          eventDidMount(info) {
-            const rid = info.event.extendedProps.resourceId;
-            if (rid === 'kaatsspelplein') { info.el.style.background = '#eafaf5'; info.el.style.borderColor = '#1abc9c'; }
-            else if (rid === 'viersprong') { info.el.style.background = '#fcf3eb'; info.el.style.borderColor = '#e67e22'; }
-            else if (rid === 'algemeen') { info.el.style.background = '#f2f5fa'; info.el.style.borderColor = '#2e3d51'; }
-            info.el.style.color = '#111';
-          },
-
-          eventClick(info) {
-            alert(info.event.title + '\n' + (info.event.start ? info.event.start.toLocaleString() : '') + ' → ' + (info.event.end ? info.event.end.toLocaleString() : ''));
+    function injectEventsToCells(events, stages, dayIdx=0) {
+      // For each day
+      const dayGrids = document.querySelectorAll(`.timeline-grid[data-date]`);
+      dayGrids.forEach(grid=>{
+        const date = grid.getAttribute('data-date');
+        // Find all cells
+        const cells = grid.querySelectorAll('.timeline-cell');
+        // For each cell, find which events start here and render them in a flexbox stack
+        cells.forEach(cell=>{
+          const stage = cell.getAttribute('data-stage');
+          const row = parseInt(cell.getAttribute('data-row'),10);
+          if(!stage||isNaN(row)) return;
+          // Find events for this stage and row
+          const dayEvents = events.filter(ev=>ev.date===date && ev.stage===stage);
+          if(dayEvents.length===0) return;
+          // Regenerate slot list
+          const slots = createTimeSlots(events.filter(ev=>ev.date===date));
+          const blocks = buildStageBlocks(dayEvents, slots);
+          // Find blocks starting at this row
+          const blocksHere = blocks.filter(b=>b.startIdx===row);
+          if(blocksHere.length>0){
+            // Render stack
+            const stack = document.createElement('div');
+            stack.className = 'event-stack';
+            stack.style.position = 'absolute';
+            stack.style.left = stack.style.top = stack.style.right = stack.style.bottom = 0;
+            blocksHere.forEach(block=>{
+              const div = document.createElement('div');
+              div.className = `timeline-event stage-${stage.toLowerCase()}`;
+              div.style.flex = `1 1 0`;
+              div.style.position = 'relative';
+              div.style.height = `calc(${block.span} * 100%)`;
+              div.style.zIndex = 3;
+              div.innerHTML = `
+                <div class="event-title">${block.ev.title}</div>
+                <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
+                ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
+              `;
+              // Use grid-row to span correct rows
+              div.style.gridRow = `span ${block.span}`;
+              div.style.height = `calc(${block.span} * 100%)`;
+              stack.appendChild(div);
+            });
+            cell.appendChild(stack);
           }
         });
-
-        document.getElementById('error').style.display = 'none';
-        calendar.render();
-      } catch (err) {
-        console.error(err);
-        showError('Kon events.json niet laden', 'Controleer pad / CORS / JSON-syntaxis.', String(err.message || err));
-      }
+      });
     }
 
-    // start
-    init();
+    // "Now" line logic for grid
+    function setNowLine() {
+      const now=new Date(),yyyy=now.getFullYear(),mm=(now.getMonth()+1).toString().padStart(2,'0'),dd=now.getDate().toString().padStart(2,'0');
+      const todayStr=`${yyyy}-${mm}-${dd}`;
+      const grids=document.querySelectorAll('.timeline-grid');
+      grids.forEach(grid=>{
+        const date=grid.getAttribute('data-date');
+        grid.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
+        if(date!==todayStr)return;
+        const timeDivs=Array.from(grid.querySelectorAll('.timeline-time'));
+        if(timeDivs.length===0)return;
+        const curMins=now.getHours()*60+now.getMinutes();
+        let found=false;
+        for(let i=0;i<timeDivs.length-1;++i){
+          const slotStart=timeToMinutes(timeDivs[i].dataset.time);
+          const slotEnd=timeToMinutes(timeDivs[i+1].dataset.time);
+          if(curMins>=slotStart&&curMins<slotEnd){
+            const slotDiv=timeDivs[i];
+            const nextSlotDiv=timeDivs[i+1];
+            const percent=(curMins-slotStart)/(slotEnd-slotStart);
+            const slotTop=slotDiv.offsetTop;
+            const slotHeight=nextSlotDiv.offsetTop-slotDiv.offsetTop;
+            const nowTop=slotTop+percent*slotHeight;
+            const line=document.createElement('div');
+            line.className='now-line';
+            line.style.top=nowTop+'px';
+            grid.parentElement.appendChild(line);
+            found=true;
+            break;
+          }
+        }
+        if(!found){
+          const lastDiv=timeDivs[timeDivs.length-1];
+          const line=document.createElement('div');
+          line.className='now-line';
+          line.style.top=(lastDiv.offsetTop+lastDiv.offsetHeight)+'px';
+          grid.parentElement.appendChild(line);
+        }
+      });
+    }
+
+    // Main loader
+    fetch('events.json')
+      .then(r=>r.json())
+      .then(events=>{
+        const container=document.getElementById('timeline');
+        const grouped=groupEventsByDate(events);
+        let html='',dayIdx=0;
+        Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).forEach(([date,evs])=>{
+          const stages=getAllStages(evs);
+          html+=renderDayGrid(date,evs,stages,dayIdx++);
+        });
+        container.innerHTML=html;
+        injectEventsToCells(events, getAllStages(events));
+        setTimeout(setNowLine,200);
+        setInterval(setNowLine,60*1000);
+      })
+      .catch(err=>{
+        document.getElementById('timeline').innerHTML="<p style='color:red'>Kon evenementen niet laden. Controleer het bestand 'events.json'.</p>";
+        console.error(err);
+      });
+    window.addEventListener('resize',()=>setTimeout(setNowLine,300));
   </script>
 </body>
 </html>
