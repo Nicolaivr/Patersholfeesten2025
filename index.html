@@ -1,63 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Patersholfeesten 2025 - Festival Tijdlijn</title>
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/index.global.min.css" rel="stylesheet">
+
   <style>
+    /* small page styles and small tweaks for fc if injected */
     body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; }
-    #calendar { max-width: 1200px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
-    header { background: #2e3d51; color: #fff; padding: 2rem 1rem 1rem 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
-    header h1 { margin: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: 2px; }
-    header p { margin: 0.5rem 0 0 0; font-size: 1.15rem; font-weight: 400; }
+    #calendar { max-width: 1200px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 1rem; }
+    header { background: #2e3d51; color: #fff; padding: 2rem 1rem 1rem 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    header h1 { margin: 0; font-size: 2.0rem; font-weight: 700; letter-spacing: 1px; }
+    header p { margin: 0.5rem 0 0 0; font-size: 1rem; font-weight: 400; }
+    /* ensure event text inherits color */
+    .fc .fc-event { color: inherit; }
   </style>
 </head>
 <body>
   <header>
     <h1>Patersholfeesten 2025</h1>
-    <p>Festival Tijdlijn &mdash; Overzicht per dag en per podium</p>
+    <p>Festival Tijdlijn — Overzicht per dag en per podium</p>
   </header>
+
   <div id="calendar"></div>
+
+  <!-- Prebuilt global JS bundles — these will inject FullCalendar's CSS automatically. -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/index.global.min.js"></script>
+
   <script>
-    // Define your possible stages as resources
+    // ---------- configuration ----------
     const stages = [
       { id: 'kaatsspelplein', title: 'Kaatsspelplein' },
       { id: 'viersprong', title: 'Viersprong' },
       { id: 'algemeen', title: 'Algemeen' }
     ];
 
-    fetch('events.json')
-      .then(resp => resp.json())
-      .then(data => {
-        // Map your events to FullCalendar format
-        const events = data.map(ev => ({
-          id: ev.title + ev.start + ev.stage,
-          resourceId: ev.stage,
-          title: ev.title + (ev.extra_info ? ' — ' + ev.extra_info : ''),
-          start: ev.date + 'T' + (ev.start.length === 4 ? '0' + ev.start : ev.start),
-          end: ev.date + 'T' + (ev.end.length === 4 ? '0' + ev.end : ev.end)
-        }));
+    function normalizeTime(t) {
+      if (t === undefined || t === null || t === '') return null;
+      t = String(t).trim();
+      if (t.includes(':')) {
+        const parts = t.split(':').map(p => p.padStart(2, '0'));
+        while (parts.length < 3) parts.push('00');
+        return parts.slice(0,3).join(':');
+      }
+      const digits = t.replace(/\D/g, '');
+      if (digits.length <= 2) return digits.padStart(2,'0') + ':00:00';
+      if (digits.length === 3) return digits.slice(0,1).padStart(2,'0') + ':' + digits.slice(1).padEnd(2,'0') + ':00';
+      return digits.slice(0,2) + ':' + digits.slice(2,4) + ':00';
+    }
+    function hourFromTime(timeStr) {
+      if (!timeStr) return null;
+      const h = parseInt(timeStr.split(':')[0], 10);
+      return Number.isFinite(h) ? h : null;
+    }
 
-        // Calculate the earliest and latest event for slotMinTime/slotMaxTime
-        const mins = data.map(ev => Number((ev.start.length === 4 ? '0'+ev.start : ev.start).split(':')[0]));
-        const maxs = data.map(ev => Number((ev.end.length === 4 ? '0'+ev.end : ev.end).split(':')[0]));
-        const minHour = Math.min(...mins, 8);
-        const maxHour = Math.max(...maxs, 24);
+    // ---------- fallback CSS loader ----------
+    // If FullCalendar's injected CSS is missing or you want an explicit stylesheet,
+    // these URLs come from the scoped packages (@fullcalendar/core and resource-timeline).
+    // They are only appended if you set `forceExplicitCss = true`.
+    const forceExplicitCss = false; // set to true to always load the CSS files explicitly
+    const explicitCssLinks = [
+      'https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/main.min.css',
+      'https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/main.min.css'
+    ];
 
+    function appendExplicitCss() {
+      explicitCssLinks.forEach(href => {
+        const l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = href;
+        l.onerror = () => console.warn('Failed to load FullCalendar CSS from', href);
+        document.head.appendChild(l);
+      });
+    }
+
+    // ---------- main initialization ----------
+    (async function init() {
+      try {
+        // optional: load your events.json
+        const resp = await fetch('events.json');
+        if (!resp.ok) throw new Error('events.json not found (HTTP ' + resp.status + ')');
+        const data = await resp.json();
+
+        // map events
+        const events = (data || []).map(ev => {
+          const s = normalizeTime(ev.start);
+          const e = normalizeTime(ev.end) || (s ? (() => {
+            const h = hourFromTime(s);
+            return (h !== null) ? (String(Math.min(h + 1, 23)).padStart(2,'0') + ':00:00') : null;
+          })() : null);
+
+          return {
+            id: (ev.title||'') + '|' + (ev.date||'') + '|' + (ev.stage||''),
+            resourceId: ev.stage,
+            title: (ev.title||'') + (ev.extra_info ? ' — ' + ev.extra_info : ''),
+            start: (ev.date||'') + (s ? ('T' + s) : ''),
+            end: (ev.date||'') + (e ? ('T' + e) : '')
+          };
+        });
+
+        // compute sensible slot times
+        const starts = (data || []).map(ev => hourFromTime(normalizeTime(ev.start))).filter(x => x !== null);
+        const ends   = (data || []).map(ev => hourFromTime(normalizeTime(ev.end))).filter(x => x !== null);
+        const minHour = starts.length ? Math.max(0, Math.min(...starts)) : 8;
+        const maxHourRaw = ends.length ? Math.max(...ends) : 22;
+        const maxHour = Math.min(24, maxHourRaw + 2);
+
+        // create calendar once FullCalendar is available
         const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
           schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
           initialView: 'resourceTimelineDay',
           locale: 'nl',
           height: 'auto',
-          slotMinTime: String(minHour).padStart(2, '0') + ':00:00',
-          slotMaxTime: String(maxHour+2).padStart(2, '0') + ':00:00',
           resourceAreaHeaderContent: 'Podium',
           resources: stages,
           events: events,
           nowIndicator: true,
+          slotMinTime: String(minHour).padStart(2,'0') + ':00:00',
+          slotMaxTime: String(maxHour).padStart(2,'0') + ':00:00',
           headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -68,22 +129,39 @@
             resourceTimelineWeek: { buttonText: 'Week' }
           },
           eventDidMount: function(info) {
-            // Optional: color coding per stage
-            if(info.event.extendedProps.resourceId === 'kaatsspelplein') {
+            const rid = info.event.extendedProps.resourceId;
+            if (rid === 'kaatsspelplein') {
               info.el.style.background = '#eafaf5';
               info.el.style.borderColor = '#1abc9c';
-            } else if(info.event.extendedProps.resourceId === 'viersprong') {
+            } else if (rid === 'viersprong') {
               info.el.style.background = '#fcf3eb';
               info.el.style.borderColor = '#e67e22';
-            } else if(info.event.extendedProps.resourceId === 'algemeen') {
+            } else if (rid === 'algemeen') {
               info.el.style.background = '#f2f5fa';
               info.el.style.borderColor = '#2e3d51';
             }
           },
           eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
         });
+
         calendar.render();
-      });
+
+        // If you explicitly want to force CSS (or if you experienced the 404 earlier),
+        // set forceExplicitCss = true above. Otherwise, if you still see visual issues,
+        // flip that flag or call appendExplicitCss() manually.
+        if (forceExplicitCss) appendExplicitCss();
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('calendar').innerHTML = '<p style="padding:1rem;color:#a33">Kon events.json niet laden — controleer pad / CORS en network.</p>';
+      }
+    })();
+
+    // Optional developer helper: if you tried the injected CSS route and still get
+    // bad visuals, open devtools -> network and look for 404s. The correct explicit
+    // scoped-package paths are e.g.
+    // https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/main.min.css
+    // https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/main.min.css
   </script>
 </body>
 </html>
