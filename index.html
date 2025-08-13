@@ -6,48 +6,13 @@
   <title>Patersholfeesten 2025 - Festival Tijdlijn</title>
   <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Montserrat', Arial, sans-serif;
-      background: #f5f7fb;
-      margin: 0;
-      padding: 0;
-      color: #222;
-    }
-    header {
-      background: #2e3d51;
-      color: #fff;
-      padding: 2rem 1rem 1rem 1rem;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    header h1 {
-      margin: 0;
-      font-size: 2.5rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-    }
-    header p {
-      margin: 0.5rem 0 0 0;
-      font-size: 1.15rem;
-      font-weight: 400;
-    }
-    .timeline-container {
-      max-width: 1300px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-    .timeline-date {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #2e3d51;
-      margin: 2.5rem 0 1rem 0;
-      border-left: 5px solid #2e3d51;
-      padding-left: 0.8em;
-      background: #ebeff5;
-    }
-    .timeline-grid-wrap {
-      position: relative;
-    }
+    body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; color: #222; }
+    header { background: #2e3d51; color: #fff; padding: 2rem 1rem 1rem 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
+    header h1 { margin: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: 2px; }
+    header p { margin: 0.5rem 0 0 0; font-size: 1.15rem; font-weight: 400; }
+    .timeline-container { max-width: 1300px; margin: 2rem auto; padding: 0 1rem; }
+    .timeline-date { font-size: 1.4rem; font-weight: 700; color: #2e3d51; margin: 2.5rem 0 1rem 0; border-left: 5px solid #2e3d51; padding-left: 0.8em; background: #ebeff5; }
+    .timeline-grid-wrap { position: relative; }
     .timeline-grid {
       display: grid;
       grid-template-columns: 80px repeat(var(--stage-count), 1fr);
@@ -58,32 +23,8 @@
       overflow: visible;
       position: relative;
     }
-    .timeline-header {
-      background: #e3eaf4;
-      color: #2e3d51;
-      font-weight: 600;
-      text-align: center;
-      padding: 0.6em 0.2em;
-      border-bottom: 1px solid #d9e3f0;
-      font-size: 1.05rem;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-    .timeline-time {
-      background: #f5f7fb;
-      font-weight: 600;
-      font-size: 1.02em;
-      color: #2e3d51;
-      text-align: right;
-      padding: 0.4em 0.8em 0.4em 0.2em;
-      border-right: 1px solid #e3eaf4;
-      border-bottom: 1px solid #e3eaf4;
-      min-height: 2.5em;
-      box-sizing: border-box;
-      position: relative;
-      z-index: 1;
-    }
+    .timeline-header { background: #e3eaf4; color: #2e3d51; font-weight: 600; text-align: center; padding: 0.6em 0.2em; border-bottom: 1px solid #d9e3f0; font-size: 1.05rem; position: sticky; top: 0; z-index: 2; }
+    .timeline-time { background: #f5f7fb; font-weight: 600; font-size: 1.02em; color: #2e3d51; text-align: right; padding: 0.4em 0.8em 0.4em 0.2em; border-right: 1px solid #e3eaf4; border-bottom: 1px solid #e3eaf4; min-height: 2.5em; box-sizing: border-box; position: relative; z-index: 1; }
     .timeline-cell {
       border-bottom: 1px solid #e3eaf4;
       min-height: 2.5em;
@@ -119,16 +60,7 @@
     .event-title { font-weight: bold; font-size: 1.01em; }
     .event-info { font-size: 0.95em; color: #445; }
     .event-time { font-size: 0.92em; font-style: italic; color: #555; }
-    .now-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2.5px;
-      background: red;
-      z-index: 10;
-      pointer-events: none;
-      transition: top 0.2s;
-    }
+    .now-line { position: absolute; left: 0; right: 0; height: 2.5px; background: red; z-index: 10; pointer-events: none; transition: top 0.2s; }
     @media (max-width: 800px) {
       .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.97rem; }
       header h1 { font-size: 2rem; }
@@ -212,7 +144,6 @@
         const endM = timeToMinutes(padTime(ev.end));
         let startIdx = slots.findIndex(s => timeToMinutes(s) === startM);
         if (startIdx === -1) {
-          // Find nearest slot before event start
           startIdx = slots.findIndex(s => timeToMinutes(s) > startM) - 1;
           if (startIdx < 0) startIdx = 0;
         }
@@ -243,6 +174,7 @@
       });
       return blocks;
     }
+
     function renderDayGrid(date, events, stages, slotMinutes = 30, dayIdx = 0) {
       const slots = createTimeSlots(events, slotMinutes);
       const stageMap = {};
@@ -255,48 +187,51 @@
       stages.forEach(stage => {
         stageBlocks[stage] = calcStageBlocks(stageMap[stage], slots, slotMinutes);
       });
-      // Map: per stage, per slot: which event block index starts here
-      const stageSlotBlock = {};
+      // For each stage, prepare a per-slot skip counter
+      const skip = {};
+      stages.forEach(stage => skip[stage]=0);
+      // For each stage, per slot, find which block (if any) starts here
+      const stageBlockStarts = {};
       stages.forEach(stage => {
-        stageSlotBlock[stage] = {};
-        stageBlocks[stage].forEach((block, i) => {
-          stageSlotBlock[stage][block.startIdx] = stageSlotBlock[stage][block.startIdx] || [];
-          stageSlotBlock[stage][block.startIdx].push({...block, blockIdx: i});
+        stageBlockStarts[stage] = {};
+        stageBlocks[stage].forEach((block, idx) => {
+          stageBlockStarts[stage][block.startIdx] = stageBlockStarts[stage][block.startIdx] || [];
+          stageBlockStarts[stage][block.startIdx].push({...block, blockIdx: idx});
         });
       });
-      // Track for each stage/slot the number of rows to skip due to rowspans
-      const stageSkip = {};
-      stages.forEach(stage => stageSkip[stage] = 0);
-      // HTML
+
       let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
       html += `<div class="timeline-grid-wrap"><div class="timeline-grid" style="--stage-count:${stages.length}" data-date="${date}" data-dayidx="${dayIdx}" id="timeline-grid-${dayIdx}">`;
+
       // Header row
       html += `<div class="timeline-header"></div>`;
       for (const stage of stages) {
         html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
       }
+
       // Slot rows
       for (let row = 0; row < slots.length; ++row) {
         html += `<div class="timeline-time" data-time="${slots[row]}">${slots[row]}</div>`;
         for (const stage of stages) {
-          // Rowspan skipping
-          if (stageSkip[stage] > 0) {
-            stageSkip[stage]--;
+          if (skip[stage] > 0) {
+            skip[stage]--;
+            html += `<div class="timeline-cell"></div>`;
             continue;
           }
-          const blocksHere = (stageSlotBlock[stage][row] || []);
+          const blocksHere = (stageBlockStarts[stage][row] || []);
           if (blocksHere.length > 0) {
             // Overlapping events: render all side by side, each with correct rowspan
             html += `<div class="timeline-cell" style="padding:0; position:relative;">`;
             html += `<div class="event-stack" style="height:100%;">`;
             for (const block of blocksHere) {
-              const height = `auto`;
-              html += `<div class="timeline-event stage-${stage.toLowerCase()}" style="flex:1 1 0; height:${height}; grid-row: span ${block.span}; z-index:3;" title="${block.ev.title}" data-event-idx="${block.blockIdx}" data-stage="${stage}" data-row="${row}" data-span="${block.span}">
+              html += `<div class="timeline-event stage-${stage.toLowerCase()}" style="flex:1 1 0; height:auto;" title="${block.ev.title}" data-event-idx="${block.blockIdx}" data-stage="${stage}" data-row="${row}" data-span="${block.span}" 
+                ${block.span > 1 ? `style="grid-row: span ${block.span};"` : ""} 
+                data-overlap-idx="${block.overlapIdx}" data-overlap-count="${block.overlapCount}">
                 <div class="event-title">${block.ev.title}</div>
                 <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
                 ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
               </div>`;
-              if (block.span > 1) stageSkip[stage] = block.span-1;
+              if (block.span > 1) skip[stage] = block.span-1;
             }
             html += `</div></div>`;
           } else {
@@ -307,6 +242,7 @@
       html += `</div></div>`;
       return html;
     }
+
     // For the "now" line
     function setNowLine() {
       const now = new Date();
@@ -318,28 +254,22 @@
       const grids = document.querySelectorAll('.timeline-grid');
       grids.forEach(grid => {
         const date = grid.getAttribute('data-date');
-        // Remove any existing now-line
         grid.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
         if (date !== todayStr) return;
-        // Get all slot time divs
         const timeDivs = Array.from(grid.querySelectorAll('.timeline-time'));
         if (timeDivs.length === 0) return;
-        // Find position for "now"
         const curMinutes = now.getHours()*60 + now.getMinutes();
         let found = false;
         for (let i = 0; i < timeDivs.length-1; ++i) {
           const slotStart = timeToMinutes(timeDivs[i].dataset.time);
           const slotEnd = timeToMinutes(timeDivs[i+1].dataset.time);
           if (curMinutes >= slotStart && curMinutes < slotEnd) {
-            // Interpolate position within slot
             const slotDiv = timeDivs[i];
             const nextSlotDiv = timeDivs[i+1];
-            const parentRect = grid.parentElement.getBoundingClientRect();
             const percent = (curMinutes - slotStart) / (slotEnd - slotStart);
             const slotTop = slotDiv.offsetTop;
             const slotHeight = nextSlotDiv.offsetTop - slotDiv.offsetTop;
             const nowTop = slotTop + percent * slotHeight;
-            // Insert line
             const line = document.createElement('div');
             line.className = 'now-line';
             line.style.top = nowTop+'px';
@@ -348,7 +278,6 @@
             break;
           }
         }
-        // If after last slot, show at bottom
         if (!found) {
           const lastDiv = timeDivs[timeDivs.length-1];
           const line = document.createElement('div');
@@ -358,6 +287,7 @@
         }
       });
     }
+
     fetch('events.json')
       .then(r => r.json())
       .then(events => {
@@ -370,8 +300,8 @@
           html += renderDayGrid(date, evs, stages, 30, dayIdx++);
         });
         container.innerHTML = html;
-        setTimeout(setNowLine, 200); // Wait for DOM
-        setInterval(setNowLine, 60*1000); // Update every minute
+        setTimeout(setNowLine, 200);
+        setInterval(setNowLine, 60*1000);
       })
       .catch(err => {
         document.getElementById('timeline').innerHTML =
