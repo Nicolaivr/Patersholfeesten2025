@@ -53,6 +53,7 @@
       background: #fff;
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
       overflow: hidden;
+      position: relative;
     }
     .timeline-header {
       background: #e3eaf4;
@@ -77,6 +78,7 @@
       border-bottom: 1px solid #e3eaf4;
       min-height: 2.5em;
       box-sizing: border-box;
+      position: relative;
     }
     .timeline-cell {
       border-bottom: 1px solid #e3eaf4;
@@ -85,23 +87,49 @@
       box-sizing: border-box;
       position: relative;
       background: #fff;
+      display: flex;
+      gap: 0.2em;
+      align-items: stretch;
     }
-    .timeline-cell.event {
+    .timeline-cell-inner {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      margin: 0.1em 0;
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+      min-width: 0;
+      background: #fafcff;
+    }
+    .timeline-cell-inner.event {
       background: #eafaf5;
       border-left: 5px solid #1abc9c;
       font-weight: 500;
       color: #212;
+      border: 1.5px solid #1abc9c;
     }
-    .timeline-cell.event.stage-kaatsspelplein { border-left-color: #1abc9c; background: #eafaf5; }
-    .timeline-cell.event.stage-viersprong { border-left-color: #e67e22; background: #fcf3eb; }
-    .timeline-cell.event.stage-algemeen { border-left-color: #2e3d51; background: #f2f5fa; }
+    .timeline-cell-inner.stage-kaatsspelplein { border-left-color: #1abc9c; background: #eafaf5; border-color: #1abc9c; }
+    .timeline-cell-inner.stage-viersprong { border-left-color: #e67e22; background: #fcf3eb; border-color: #e67e22; }
+    .timeline-cell-inner.stage-algemeen { border-left-color: #2e3d51; background: #f2f5fa; border-color: #2e3d51; }
 
-    .event-title { font-weight: bold; }
+    .event-title { font-weight: bold; font-size: 1.01em; }
     .event-info { font-size: 0.95em; color: #445; }
     .event-time { font-size: 0.92em; font-style: italic; color: #555; }
 
+    .now-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: red;
+      z-index: 5;
+      pointer-events: none;
+      transition: top 0.2s;
+    }
+
     @media (max-width: 800px) {
-      .timeline-header, .timeline-time, .timeline-cell { font-size: 0.97rem; }
+      .timeline-header, .timeline-time, .timeline-cell, .timeline-cell-inner { font-size: 0.97rem; }
       header h1 { font-size: 2rem; }
       .timeline-container { padding: 0 0.2rem; }
       .timeline-grid { font-size: 0.93rem; }
@@ -115,7 +143,7 @@
 <body>
   <header>
     <h1>Patersholfeesten 2025</h1>
-    <p>Festival Tijdlijn &mdash; Overzicht per dag en per podium v2</p>
+    <p>Festival Tijdlijn &mdash; Overzicht per dag en per podium</p>
   </header>
   <main>
     <div class="timeline-container" id="timeline"></div>
@@ -126,118 +154,37 @@
       return t.length === 5 ? t : t.length === 4 ? '0' + t : t;
     }
 
+    // Convert HH:MM to minutes since midnight
+    function timeToMinutes(t) {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    }
+    // Convert minutes since midnight to HH:MM
+    function minutesToTime(m) {
+      const h = Math.floor(m / 60);
+      const mm = m % 60;
+      return h.toString().padStart(2, '0') + ':' + mm.toString().padStart(2, '0');
+    }
+
     // Create array of time slots (e.g. every 30 minutes)
     function createTimeSlots(events, slotMinutes = 30) {
       // Find min and max times for the day
       let min = '24:00', max = '00:00';
       for (const ev of events) {
-        if (ev.start < min) min = ev.start;
-        if (ev.end > max) max = ev.end;
+        if (padTime(ev.start) < min) min = padTime(ev.start);
+        if (padTime(ev.end) > max) max = padTime(ev.end);
       }
       min = padTime(min);
       max = padTime(max);
 
       const slots = [];
-      let [h, m] = min.split(':').map(Number);
-      const [maxh, maxm] = max.split(':').map(Number);
-
-      while (h < maxh || (h === maxh && m <= maxm)) {
-        slots.push(`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`);
-        m += slotMinutes;
-        if (m >= 60) { h += 1; m -= 60; }
+      let cur = timeToMinutes(min);
+      const end = timeToMinutes(max);
+      while (cur <= end) {
+        slots.push(minutesToTime(cur));
+        cur += slotMinutes;
       }
       return slots;
-    }
-
-    // For each stage, for each time slot, show event if it is ongoing
-    function renderDayGrid(date, events, stages, slotMinutes = 30) {
-      const slots = createTimeSlots(events, slotMinutes);
-      const stageMap = {};
-      stages.forEach(s => stageMap[s] = []);
-      // Build for each stage a list of its events
-      for (const ev of events) {
-        stageMap[ev.stage].push(ev);
-      }
-
-      // For fast lookup, for each stage, for each slot, find covering event (if any)
-      const grid = [];
-      for (let i = 0; i < slots.length; ++i) {
-        const slot = slots[i];
-        const row = [];
-        for (const stage of stages) {
-          // Find an event that covers this slot but only show at the start time, and span for duration
-          const ev = stageMap[stage].find(e =>
-            padTime(e.start) === slot
-          );
-          row.push(ev || null);
-        }
-        grid.push(row);
-      }
-
-      // For rowspan logic
-      function getRowSpan(stage, rowIdx) {
-        const ev = grid[rowIdx][stage];
-        if (!ev) return 1;
-        // Count how many slots this event covers, starting at rowIdx
-        let count = 1;
-        const slotsStart = padTime(ev.start);
-        const slotsEnd = padTime(ev.end);
-        let curIdx = rowIdx + 1;
-        while (curIdx < slots.length) {
-          const curSlot = slots[curIdx];
-          // If end time <= current slot, stop
-          if (curSlot >= slotsEnd) break;
-          curIdx++;
-          count++;
-        }
-        return count;
-      }
-
-      // HTML
-      let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
-      html += `<div class="timeline-grid" style="--stage-count:${stages.length}">`;
-
-      // Header row
-      html += `<div class="timeline-header"></div>`;
-      for (const stage of stages) {
-        html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
-      }
-
-      // Build slot rows
-      const stageIdxMap = Object.fromEntries(stages.map((s,i)=>[s,i]));
-      const skip = Array.from({length:stages.length},()=>0);
-      for (let row = 0; row < slots.length; ++row) {
-        html += `<div class="timeline-time">${slots[row]}</div>`;
-        for (let st = 0; st < stages.length; ++st) {
-          if (skip[st] > 0) {
-            skip[st]--;
-            continue;
-          }
-          const ev = grid[row][st];
-          if (ev) {
-            // Calculate rowspan
-            const startIdx = row;
-            let span = 1;
-            let curIdx = row + 1;
-            const eventEnd = padTime(ev.end);
-            while (curIdx < slots.length && slots[curIdx] < eventEnd) {
-              span++;
-              curIdx++;
-            }
-            skip[st] = span-1;
-            html += `<div class="timeline-cell event stage-${ev.stage.toLowerCase()}" style="grid-row: span ${span};">
-              <div class="event-title">${ev.title}</div>
-              <div class="event-time">${ev.start}${ev.end!==ev.start?` &ndash; ${ev.end}`:''}</div>
-              ${ev.extra_info?`<div class="event-info">${ev.extra_info}</div>`:''}
-            </div>`;
-          } else {
-            html += `<div class="timeline-cell"></div>`;
-          }
-        }
-      }
-
-      html += `</div>`;
-      return html;
     }
 
     function getAllStages(events) {
@@ -245,7 +192,13 @@
       const stageSet = new Set(events.map(ev => ev.stage));
       const order = ['kaatsspelplein', 'viersprong', 'algemeen'];
       const stages = Array.from(stageSet);
-      stages.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      stages.sort((a, b) => {
+        const ai = order.indexOf(a), bi = order.indexOf(b);
+        if (ai === -1 && bi === -1) return a.localeCompare(b);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      });
       return stages;
     }
 
@@ -258,23 +211,144 @@
       return grouped;
     }
 
+    // For a stage and a time slot, find all events active at that slot
+    function getEventsInSlot(stageEvents, slotStart, slotEnd) {
+      return stageEvents.filter(ev =>
+        timeToMinutes(padTime(ev.start)) < slotEnd &&
+        timeToMinutes(padTime(ev.end)) > slotStart
+      );
+    }
+
+    function renderDayGrid(date, events, stages, slotMinutes = 30, dayIdx = 0) {
+      const slots = createTimeSlots(events, slotMinutes);
+      const slotStarts = slots.map(timeToMinutes);
+      const slotEnds = slotStarts.map((start, i) => (i < slotStarts.length-1 ? slotStarts[i+1] : start+slotMinutes));
+      const stageMap = {};
+      stages.forEach(s => stageMap[s] = []);
+      for (const ev of events) {
+        stageMap[ev.stage].push(ev);
+      }
+
+      // HTML
+      let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
+      html += `<div class="timeline-grid" style="--stage-count:${stages.length}" data-date="${date}" data-dayidx="${dayIdx}" id="timeline-grid-${dayIdx}">`;
+
+      // Header row
+      html += `<div class="timeline-header"></div>`;
+      for (const stage of stages) {
+        html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
+      }
+
+      // Build slot rows
+      for (let row = 0; row < slots.length; ++row) {
+        html += `<div class="timeline-time" data-time="${slots[row]}">${slots[row]}</div>`;
+        for (let st = 0; st < stages.length; ++st) {
+          const stage = stages[st];
+          const stEvents = stageMap[stage] || [];
+          const eventsInSlot = getEventsInSlot(stEvents, slotStarts[row], slotEnds[row]);
+          html += `<div class="timeline-cell" data-stage="${stage}" data-time="${slots[row]}">`;
+          if (eventsInSlot.length > 0) {
+            // Sort events by start time for consistent display
+            eventsInSlot.sort((a, b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
+            for (const ev of eventsInSlot) {
+              html += `<div class="timeline-cell-inner event stage-${ev.stage.toLowerCase()}" title="${ev.title}">
+                <div class="event-title">${ev.title}</div>
+                <div class="event-time">${ev.start}${ev.end!==ev.start?` &ndash; ${ev.end}`:''}</div>
+                ${ev.extra_info?`<div class="event-info">${ev.extra_info}</div>`:''}
+              </div>`;
+            }
+          }
+          html += `</div>`;
+        }
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    // For the "now" line
+    function setNowLine() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = (now.getMonth()+1).toString().padStart(2,'0');
+      const dd = now.getDate().toString().padStart(2,'0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      // Find grid for today
+      const grids = document.querySelectorAll('.timeline-grid');
+      grids.forEach(grid => {
+        const date = grid.getAttribute('data-date');
+        // Remove any existing now-line
+        grid.querySelectorAll('.now-line').forEach(el=>el.remove());
+        if (date !== todayStr) return;
+
+        // Get all slot time divs
+        const timeDivs = Array.from(grid.querySelectorAll('.timeline-time'));
+        if (timeDivs.length === 0) return;
+
+        // Find position for "now"
+        const curMinutes = now.getHours()*60 + now.getMinutes();
+        let found = false;
+        for (let i = 0; i < timeDivs.length-1; ++i) {
+          const slotStart = timeToMinutes(timeDivs[i].dataset.time);
+          const slotEnd = timeToMinutes(timeDivs[i+1].dataset.time);
+
+          if (curMinutes >= slotStart && curMinutes < slotEnd) {
+            // Interpolate position within slot
+            const slotDiv = timeDivs[i];
+            const nextSlotDiv = timeDivs[i+1];
+            const slotRect = slotDiv.getBoundingClientRect();
+            const nextSlotRect = nextSlotDiv.getBoundingClientRect();
+            const parentRect = grid.getBoundingClientRect();
+
+            const percent = (curMinutes - slotStart) / (slotEnd - slotStart);
+            const slotTop = slotDiv.offsetTop;
+            const slotHeight = nextSlotDiv.offsetTop - slotDiv.offsetTop;
+            const nowTop = slotTop + percent * slotHeight;
+
+            // Insert line
+            const line = document.createElement('div');
+            line.className = 'now-line';
+            line.style.top = nowTop+'px';
+            grid.appendChild(line);
+            found = true;
+            break;
+          }
+        }
+        // If after last slot, show at bottom
+        if (!found) {
+          const lastDiv = timeDivs[timeDivs.length-1];
+          const line = document.createElement('div');
+          line.className = 'now-line';
+          line.style.top = (lastDiv.offsetTop + lastDiv.offsetHeight)+'px';
+          grid.appendChild(line);
+        }
+      });
+    }
+
     fetch('events.json')
       .then(r => r.json())
       .then(events => {
         const container = document.getElementById('timeline');
         const grouped = groupEventsByDate(events);
         let html = '';
+        let dayIdx = 0;
         Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).forEach(([date, evs]) => {
           const stages = getAllStages(evs);
-          html += renderDayGrid(date, evs, stages, 30);
+          html += renderDayGrid(date, evs, stages, 30, dayIdx++);
         });
         container.innerHTML = html;
+        setTimeout(setNowLine, 200); // Wait for DOM
+        setInterval(setNowLine, 60*1000); // Update every minute
       })
       .catch(err => {
         document.getElementById('timeline').innerHTML =
           "<p style='color:red'>Kon evenementen niet laden. Controleer het bestand 'events.json'.</p>";
         console.error(err);
       });
+
+    // Also update on resize (for correct line placement)
+    window.addEventListener('resize', () => setTimeout(setNowLine, 300));
   </script>
 </body>
 </html>
