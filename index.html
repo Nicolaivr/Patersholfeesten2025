@@ -4,16 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Patersholfeesten 2025 - Festival Tijdlijn</title>
-
   <style>
-    /* small page styles and small tweaks for fc if injected */
     body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; }
-    #calendar { max-width: 1200px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 1rem; }
     header { background: #2e3d51; color: #fff; padding: 2rem 1rem 1rem 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
     header h1 { margin: 0; font-size: 2.0rem; font-weight: 700; letter-spacing: 1px; }
     header p { margin: 0.5rem 0 0 0; font-size: 1rem; font-weight: 400; }
-    /* ensure event text inherits color */
-    .fc .fc-event { color: inherit; }
+    #calendar { max-width: 1200px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 1rem; min-height: 320px; }
+    .error-box { max-width: 900px; margin: 2rem auto; background: #fff6f6; border: 1px solid #f0a8a8; color: #7a1b1b; padding: 1rem 1.25rem; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,0.03); font-size: 0.95rem; }
+    .btn { display: inline-block; background: #2e3d51; color: #fff; border: none; padding: 0.45rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.95rem; }
+    .btn.secondary { background: transparent; color: #2e3d51; border: 1px solid #2e3d51; margin-left: 0.5rem; }
+    .fc .fc-event { color: inherit; white-space: normal; }
   </style>
 </head>
 <body>
@@ -22,14 +22,14 @@
     <p>Festival Tijdlijn — Overzicht per dag en per podium</p>
   </header>
 
-  <div id="calendar"></div>
+  <div id="calendar" aria-live="polite"></div>
+  <div id="error" style="display:none;"></div>
 
-  <!-- Prebuilt global JS bundles — these will inject FullCalendar's CSS automatically. -->
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/index.global.min.js"></script>
+  <!-- Scheduler bundle (includes resource-timeline) -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.19/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/locales-all.global.min.js"></script>
 
   <script>
-    // ---------- configuration ----------
     const stages = [
       { id: 'kaatsspelplein', title: 'Kaatsspelplein' },
       { id: 'viersprong', title: 'Viersprong' },
@@ -49,65 +49,103 @@
       if (digits.length === 3) return digits.slice(0,1).padStart(2,'0') + ':' + digits.slice(1).padEnd(2,'0') + ':00';
       return digits.slice(0,2) + ':' + digits.slice(2,4) + ':00';
     }
+
     function hourFromTime(timeStr) {
       if (!timeStr) return null;
       const h = parseInt(timeStr.split(':')[0], 10);
       return Number.isFinite(h) ? h : null;
     }
 
-    // ---------- fallback CSS loader ----------
-    // If FullCalendar's injected CSS is missing or you want an explicit stylesheet,
-    // these URLs come from the scoped packages (@fullcalendar/core and resource-timeline).
-    // They are only appended if you set `forceExplicitCss = true`.
-    const forceExplicitCss = false; // set to true to always load the CSS files explicitly
-    const explicitCssLinks = [
-      'https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/main.min.css',
-      'https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/main.min.css'
-    ];
-
-    function appendExplicitCss() {
-      explicitCssLinks.forEach(href => {
-        const l = document.createElement('link');
-        l.rel = 'stylesheet';
-        l.href = href;
-        l.onerror = () => console.warn('Failed to load FullCalendar CSS from', href);
-        document.head.appendChild(l);
-      });
+    // add minutes to an ISO-like local datetime string (YYYY-MM-DDTHH:MM:SS)
+    function addMinutesToIsoLocal(dtStr, minutes) {
+      // create Date from local iso-like string
+      const d = new Date(dtStr);
+      if (isNaN(d)) return dtStr; // fallback
+      d.setMinutes(d.getMinutes() + minutes);
+      // build local YYYY-MM-DD and HH:MM:SS
+      const YYYY = d.getFullYear();
+      const MM = String(d.getMonth() + 1).padStart(2,'0');
+      const DD = String(d.getDate()).padStart(2,'0');
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mm = String(d.getMinutes()).padStart(2,'0');
+      const ss = String(d.getSeconds()).padStart(2,'0');
+      return `${YYYY}-${MM}-${DD}T${hh}:${mm}:${ss}`;
     }
 
-    // ---------- main initialization ----------
-    (async function init() {
-      try {
-        // optional: load your events.json
-        const resp = await fetch('events.json');
-        if (!resp.ok) throw new Error('events.json not found (HTTP ' + resp.status + ')');
-        const data = await resp.json();
+    function showError(title, message, details) {
+      const c = document.getElementById('error');
+      c.style.display = 'block';
+      c.innerHTML = `
+        <div class="error-box" role="alert">
+          <strong>${escapeHtml(title)}</strong>
+          <div style="margin-top:0.4rem">${escapeHtml(message)}</div>
+          ${details ? `<pre style="margin-top:0.6rem;padding:0.6rem;background:#fff;border-radius:6px;border:1px solid #eee;white-space:pre-wrap">${escapeHtml(details)}</pre>` : ''}
+          <div style="margin-top:0.75rem">
+            <button id="retryBtn" class="btn">Retry</button>
+            <button id="helpBtn" class="btn secondary">Tips</button>
+          </div>
+        </div>`;
+      document.getElementById('retryBtn').onclick = () => { c.style.display='none'; document.getElementById('calendar').innerHTML=''; init(); };
+      document.getElementById('helpBtn').onclick = () => alert('• Ensure events.json is valid JSON and ends with ]\n• Check Network tab for HTTP/CORS errors\n• Remove any stray "..." or trailing commas.');
+    }
 
-        // map events
-        const events = (data || []).map(ev => {
-          const s = normalizeTime(ev.start);
-          const e = normalizeTime(ev.end) || (s ? (() => {
-            const h = hourFromTime(s);
-            return (h !== null) ? (String(Math.min(h + 1, 23)).padStart(2,'0') + ':00:00') : null;
-          })() : null);
+    function escapeHtml(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    async function fetchEventsJson() {
+      const url = 'events.json';
+      const resp = await fetch(url, { cache: 'no-store' });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(()=>'');
+        throw new Error(`HTTP ${resp.status} ${resp.statusText}${txt? ' — ' + txt : ''}`);
+      }
+      let data;
+      try { data = await resp.json(); } 
+      catch(err) { throw new Error('Invalid JSON: ' + err.message); }
+      if (!Array.isArray(data)) throw new Error('Expected a JSON array of events.');
+      return data;
+    }
+
+    async function init() {
+      try {
+        const raw = await fetchEventsJson();
+
+        // map and normalize times; also ensure end > start (if equal, add 1 minute)
+        const events = raw.map((ev, idx) => {
+          if (!ev.date) { console.warn('Skipping event without date:', ev); return null; }
+          const startNorm = normalizeTime(ev.start);
+          const endNorm = normalizeTime(ev.end);
+
+          const startIso = startNorm ? `${ev.date}T${startNorm}` : null;
+          let endIso = endNorm ? `${ev.date}T${endNorm}` : null;
+
+          // if end missing, add 1 hour fallback
+          if (!endIso && startIso) {
+            endIso = addMinutesToIsoLocal(startIso, 60);
+          }
+
+          // if start and end are identical, extend end by 1 minute
+          if (startIso && endIso && startIso === endIso) {
+            endIso = addMinutesToIsoLocal(endIso, 1);
+          }
 
           return {
-            id: (ev.title||'') + '|' + (ev.date||'') + '|' + (ev.stage||''),
+            id: `${(ev.title||'')}-${ev.date}-${ev.stage||''}-${idx}`,
             resourceId: ev.stage,
-            title: (ev.title||'') + (ev.extra_info ? ' — ' + ev.extra_info : ''),
-            start: (ev.date||'') + (s ? ('T' + s) : ''),
-            end: (ev.date||'') + (e ? ('T' + e) : '')
+            title: (ev.title || '') + (ev.extra_info ? ' — ' + ev.extra_info : ''),
+            start: startIso || '',
+            end: endIso || ''
           };
-        });
+        }).filter(x => x !== null);
 
-        // compute sensible slot times
-        const starts = (data || []).map(ev => hourFromTime(normalizeTime(ev.start))).filter(x => x !== null);
-        const ends   = (data || []).map(ev => hourFromTime(normalizeTime(ev.end))).filter(x => x !== null);
+        if (events.length === 0) throw new Error('No valid events found (check date/start fields).');
+
+        const starts = raw.map(ev => hourFromTime(normalizeTime(ev.start))).filter(x=>x!==null);
+        const ends = raw.map(ev => hourFromTime(normalizeTime(ev.end))).filter(x=>x!==null);
         const minHour = starts.length ? Math.max(0, Math.min(...starts)) : 8;
         const maxHourRaw = ends.length ? Math.max(...ends) : 22;
         const maxHour = Math.min(24, maxHourRaw + 2);
 
-        // create calendar once FullCalendar is available
+        // create calendar
         const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
           schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
           initialView: 'resourceTimelineDay',
@@ -115,53 +153,36 @@
           height: 'auto',
           resourceAreaHeaderContent: 'Podium',
           resources: stages,
-          events: events,
+          events,
           nowIndicator: true,
           slotMinTime: String(minHour).padStart(2,'0') + ':00:00',
           slotMaxTime: String(maxHour).padStart(2,'0') + ':00:00',
-          headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'resourceTimelineDay,resourceTimelineWeek'
-          },
-          views: {
-            resourceTimelineDay: { buttonText: 'Dag' },
-            resourceTimelineWeek: { buttonText: 'Week' }
-          },
-          eventDidMount: function(info) {
+          headerToolbar: { left: 'prev,next today', center: 'title', right: 'resourceTimelineDay,resourceTimelineWeek' },
+          views: { resourceTimelineDay: { buttonText: 'Dag' }, resourceTimelineWeek: { buttonText: 'Week' } },
+          eventDidMount(info) {
             const rid = info.event.extendedProps.resourceId;
-            if (rid === 'kaatsspelplein') {
-              info.el.style.background = '#eafaf5';
-              info.el.style.borderColor = '#1abc9c';
-            } else if (rid === 'viersprong') {
-              info.el.style.background = '#fcf3eb';
-              info.el.style.borderColor = '#e67e22';
-            } else if (rid === 'algemeen') {
-              info.el.style.background = '#f2f5fa';
-              info.el.style.borderColor = '#2e3d51';
-            }
+            if (rid === 'kaatsspelplein') { info.el.style.background = '#eafaf5'; info.el.style.borderColor = '#1abc9c'; }
+            else if (rid === 'viersprong') { info.el.style.background = '#fcf3eb'; info.el.style.borderColor = '#e67e22'; }
+            else if (rid === 'algemeen') { info.el.style.background = '#f2f5fa'; info.el.style.borderColor = '#2e3d51'; }
+            info.el.style.color = '#111';
           },
-          eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
+          eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+          eventClick(info) {
+            alert(info.event.title + '\n' + (info.event.start ? info.event.start.toLocaleString() : '') + ' → ' + (info.event.end ? info.event.end.toLocaleString() : ''));
+          }
         });
 
+        document.getElementById('error').style.display = 'none';
         calendar.render();
-
-        // If you explicitly want to force CSS (or if you experienced the 404 earlier),
-        // set forceExplicitCss = true above. Otherwise, if you still see visual issues,
-        // flip that flag or call appendExplicitCss() manually.
-        if (forceExplicitCss) appendExplicitCss();
 
       } catch (err) {
         console.error(err);
-        document.getElementById('calendar').innerHTML = '<p style="padding:1rem;color:#a33">Kon events.json niet laden — controleer pad / CORS en network.</p>';
+        showError('Kon events.json niet laden', 'Controleer pad, HTTP-status of CORS-headers en valideer JSON.', String(err.message || err));
       }
-    })();
+    }
 
-    // Optional developer helper: if you tried the injected CSS route and still get
-    // bad visuals, open devtools -> network and look for 404s. The correct explicit
-    // scoped-package paths are e.g.
-    // https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/main.min.css
-    // https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/main.min.css
+    // run
+    init();
   </script>
 </body>
 </html>
