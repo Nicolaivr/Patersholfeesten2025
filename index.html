@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Patersholfeesten 2025 - Festival Tijdlijn</title>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Montserrat', Arial, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+    header {
+      background: #2e3d51;
+      color: #fff;
+      padding: 2rem 1rem 1rem 1rem;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+    header p {
+      margin: 0.5rem 0 0 0;
+      font-size: 1.15rem;
+      font-weight: 400;
+    }
+    .timeline-container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .timeline-date {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #2e3d51;
+      margin: 2.5rem 0 1rem 0;
+      border-left: 5px solid #2e3d51;
+      padding-left: 0.8em;
+      background: #ebeff5;
+    }
+    .timeline-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .timeline-table th,
+    .timeline-table td {
+      padding: 0.65rem 0.5rem;
+      background: #fff;
+      border-radius: 6px;
+    }
+    .timeline-table th {
+      background: #e3eaf4;
+      color: #2e3d51;
+      font-weight: 600;
+      font-size: 1.05rem;
+      text-align: left;
+    }
+    .stage-kaatsspelplein { border-left: 6px solid #1abc9c; }
+    .stage-viersprong { border-left: 6px solid #e67e22; }
+    .stage-algemeen { border-left: 6px solid #2e3d51; }
+    .stage {
+      font-weight: bold;
+      font-size: 1.02em;
+    }
+    @media (max-width: 800px) {
+      .timeline-table th, .timeline-table td { font-size: 0.98rem; }
+      header h1 { font-size: 2rem; }
+      .timeline-container { padding: 0 0.2rem; }
+    }
+    @media (max-width: 600px) {
+      .timeline-table, .timeline-table thead, .timeline-table tbody, .timeline-table tr {
+        display: block;
+        width: 100%;
+      }
+      .timeline-table th, .timeline-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 0;
+      }
+      .timeline-table th {
+        margin-bottom: 0.1rem;
+      }
+      .timeline-date {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Patersholfeesten 2025</h1>
+    <p>Festival Tijdlijn &mdash; Overzicht per dag en per podium</p>
+  </header>
+  <main>
+    <div class="timeline-container" id="timeline"></div>
+  </main>
+  <script>
+    async function fetchEvents() {
+      // Load the JSON file. Adjust the path if needed.
+      const response = await fetch('events.json');
+      return await response.json();
+    }
+
+    function formatStage(stage) {
+      switch(stage.toLowerCase()) {
+        case 'kaatsspelplein': return '<span class="stage stage-kaatsspelplein">Kaatsspelplein</span>';
+        case 'viersprong': return '<span class="stage stage-viersprong">Viersprong</span>';
+        case 'algemeen': return '<span class="stage stage-algemeen">Algemeen</span>';
+        default: return `<span class="stage">${stage}</span>`;
+      }
+    }
+
+    function formatTime(start, end) {
+      if (start === end) return start;
+      return `${start} - ${end}`;
+    }
+
+    function groupEventsByDate(events) {
+      const grouped = {};
+      for (const ev of events) {
+        if (!grouped[ev.date]) grouped[ev.date] = [];
+        grouped[ev.date].push(ev);
+      }
+      return grouped;
+    }
+
+    function getStageOrder(events) {
+      // Find all unique stages in order of appearance
+      const order = [];
+      for (const ev of events) {
+        if (!order.includes(ev.stage)) order.push(ev.stage);
+      }
+      return order;
+    }
+
+    function renderTimeline(events) {
+      const container = document.getElementById('timeline');
+      container.innerHTML = '';
+      const grouped = groupEventsByDate(events);
+
+      const dates = Object.keys(grouped).sort();
+      for (const date of dates) {
+        const dayEvents = grouped[date];
+        // Group events by stage
+        const stageOrder = getStageOrder(dayEvents);
+        container.innerHTML += `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
+        container.innerHTML += `<table class="timeline-table">
+          <thead>
+            <tr>
+              <th>Tijd</th>
+              <th>Podium</th>
+              <th>Evenement</th>
+              <th>Extra info</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dayEvents.sort((a,b) => a.start.localeCompare(b.start)).map(ev => `
+              <tr class="stage-${ev.stage.toLowerCase()}">
+                <td>${formatTime(ev.start, ev.end)}</td>
+                <td>${formatStage(ev.stage)}</td>
+                <td>${ev.title}</td>
+                <td>${ev.extra_info || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+      }
+    }
+
+    // On page load
+    fetchEvents().then(renderTimeline).catch(err => {
+      document.getElementById('timeline').innerHTML =
+        "<p style='color:red'>Kon evenementen niet laden. Controleer het bestand 'events.json'.</p>";
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
