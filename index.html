@@ -2,113 +2,15 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Patersholfeesten 2025 - Festival Tijdlijn</title>
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/index.global.min.css" rel="stylesheet">
   <style>
-    body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; color: #222;}
+    body { font-family: 'Montserrat', Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 0; }
+    #calendar { max-width: 1200px; margin: 2rem auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
     header { background: #2e3d51; color: #fff; padding: 2rem 1rem 1rem 1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
     header h1 { margin: 0; font-size: 2.5rem; font-weight: 700; letter-spacing: 2px; }
     header p { margin: 0.5rem 0 0 0; font-size: 1.15rem; font-weight: 400; }
-    .timeline-container { max-width: 1300px; margin: 2rem auto; padding: 0 1rem; }
-    .timeline-date { font-size: 1.4rem; font-weight: 700; color: #2e3d51; margin: 2.5rem 0 1rem 0; border-left: 5px solid #2e3d51; padding-left: 0.8em; background: #ebeff5; }
-    .timeline-grid-wrap { position: relative; }
-    .timeline-grid {
-      display: grid;
-      grid-template-columns: 80px repeat(var(--stage-count), 1fr);
-      border-radius: 8px;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      overflow: visible;
-      position: relative;
-      min-width: 0;
-    }
-    .timeline-header {
-      background: #e3eaf4;
-      color: #2e3d51;
-      font-weight: 600;
-      text-align: center;
-      padding: 0.6em 0.2em;
-      border-bottom: 1px solid #d9e3f0;
-      font-size: 1.05rem;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-    .timeline-time {
-      background: #f5f7fb;
-      font-weight: 600;
-      font-size: 1.02em;
-      color: #2e3d51;
-      text-align: right;
-      padding: 0.4em 0.8em 0.4em 0.2em;
-      border-right: 1px solid #e3eaf4;
-      border-bottom: 1px solid #e3eaf4;
-      min-height: 2.5em;
-      box-sizing: border-box;
-      position: relative;
-      z-index: 1;
-      grid-column: 1;
-    }
-    .timeline-cell {
-      border-bottom: 1px solid #e3eaf4;
-      min-height: 2.5em;
-      box-sizing: border-box;
-      position: relative;
-      background: #fff;
-      overflow: visible; /* allow event blocks to overflow for rounded corners */
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: stretch;
-    }
-    .event-stack {
-      display: flex;
-      width: 100%;
-      height: 100%;
-      gap: 0.2em;
-      align-items: stretch;
-      position: absolute;
-      left: 0; right: 0; top: 0; bottom: 0;
-      pointer-events: none; /* event blocks take pointer events, not stack */
-    }
-    .timeline-event {
-      flex: 1 1 0;
-      display: flex;
-      flex-direction: column;
-      margin: 0.1em 0.1em;
-      border-radius: 5px;
-      overflow: hidden;
-      border: 1.5px solid #ddd;
-      min-width: 0;
-      background: #fafcff;
-      position: relative;
-      z-index: 3;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      pointer-events: auto;
-    }
-    .timeline-event.stage-kaatsspelplein { border-left: 5px solid #1abc9c; background: #eafaf5; border-color: #1abc9c;}
-    .timeline-event.stage-viersprong { border-left: 5px solid #e67e22; background: #fcf3eb; border-color: #e67e22;}
-    .timeline-event.stage-algemeen { border-left: 5px solid #2e3d51; background: #f2f5fa; border-color: #2e3d51;}
-    .event-title { font-weight: bold; font-size: 1.01em; }
-    .event-info { font-size: 0.95em; color: #445; }
-    .event-time { font-size: 0.92em; font-style: italic; color: #555; }
-    .now-line {
-      position: absolute;
-      left: 0; right: 0;
-      height: 2.5px;
-      background: red;
-      z-index: 10;
-      pointer-events: none;
-      transition: top 0.2s;
-    }
-    @media (max-width: 900px) {
-      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.91rem; }
-    }
-    @media (max-width: 600px) {
-      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.87rem;}
-      .timeline-cell { min-height: 2em; }
-    }
   </style>
 </head>
 <body>
@@ -116,225 +18,67 @@
     <h1>Patersholfeesten 2025</h1>
     <p>Festival Tijdlijn &mdash; Overzicht per dag en per podium</p>
   </header>
-  <main>
-    <div class="timeline-container" id="timeline"></div>
-  </main>
+  <div id="calendar"></div>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/index.global.min.js"></script>
   <script>
-    const slotMinutes = 30;
-    function padTime(t) { return t.length === 5 ? t : t.length === 4 ? '0'+t : t; }
-    function timeToMinutes(t) { const [h,m]=t.split(':').map(Number); return h*60+m; }
-    function minutesToTime(m) { const h=Math.floor(m/60),mm=m%60; return h.toString().padStart(2,'0')+':'+mm.toString().padStart(2,'0'); }
-    function createTimeSlots(events) {
-      let min='24:00',max='00:00';
-      for(const ev of events){ if(padTime(ev.start)<min)min=padTime(ev.start); if(padTime(ev.end)>max)max=padTime(ev.end);}
-      let slots=[],cur=timeToMinutes(min),end=timeToMinutes(max);
-      while(cur<=end){ slots.push(minutesToTime(cur)); cur+=slotMinutes;}
-      return slots;
-    }
-    function getAllStages(events) {
-      const set=new Set(events.map(ev=>ev.stage));
-      const order=["kaatsspelplein","viersprong","algemeen"];
-      const arr=Array.from(set);
-      arr.sort((a,b)=>{const ai=order.indexOf(a),bi=order.indexOf(b);if(ai==-1&&bi==-1)return a.localeCompare(b);if(ai==-1)return 1;if(bi==-1)return -1;return ai-bi;});
-      return arr;
-    }
-    function groupEventsByDate(events) {
-      const grouped={};
-      for(const ev of events){ if(!grouped[ev.date])grouped[ev.date]=[]; grouped[ev.date].push(ev);}
-      return grouped;
-    }
-    // For each stage, build a list of event blocks: startSlot, span, and overlap index.
-    function buildStageBlocks(stageEvents, slots) {
-      stageEvents = stageEvents.slice().sort((a, b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
-      const blocks = stageEvents.map(ev => {
-        const sM = timeToMinutes(padTime(ev.start));
-        const eM = timeToMinutes(padTime(ev.end));
-        let startIdx = slots.findIndex(s => timeToMinutes(s) === sM);
-        if (startIdx === -1) startIdx = slots.findIndex(s => timeToMinutes(s) > sM) - 1;
-        if (startIdx<0) startIdx=0;
-        let endIdx = slots.findIndex(s => timeToMinutes(s) >= eM);
-        if (endIdx === -1) endIdx = slots.length;
-        const span = Math.max(1, endIdx - startIdx);
-        return {ev, startIdx, span};
-      });
-      // For overlap: for each slot, track what blocks are present
-      const slotBlocks = Array(slots.length).fill(0).map(()=>[]);
-      blocks.forEach((block, idx) => {
-        for(let i=block.startIdx;i<block.startIdx+block.span && i<slots.length;++i) slotBlocks[i].push(idx);
-      });
-      // For each block, determine overlapIdx and totalOverlaps
-      blocks.forEach((block, idx) => {
-        let maxOverlap=1,myCol=0;
-        for(let i=block.startIdx;i<block.startIdx+block.span&&i<slots.length;++i){
-          const overlaps=slotBlocks[i];
-          maxOverlap=Math.max(maxOverlap,overlaps.length);
-          myCol=Math.max(myCol,overlaps.indexOf(idx));
-        }
-        block.overlapIdx=myCol;
-        block.overlapTotal=maxOverlap;
-      });
-      return blocks;
-    }
+    // Map your stages to resources
+    const stages = [
+      { id: 'kaatsspelplein', title: 'Kaatsspelplein' },
+      { id: 'viersprong', title: 'Viersprong' },
+      { id: 'algemeen', title: 'Algemeen' }
+    ];
 
-    function renderDayGrid(date, events, stages, dayIdx=0) {
-      const slots = createTimeSlots(events);
-      const numRows = slots.length;
-      const stageMap={};
-      stages.forEach(s=>stageMap[s]=[]);
-      for(const ev of events){ stageMap[ev.stage].push(ev);}
-      // For each stage, build blocks
-      const stageBlocks={};
-      stages.forEach(stage=>{stageBlocks[stage]=buildStageBlocks(stageMap[stage],slots);});
-      // Build grid
-      let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
-      html += `<div class="timeline-grid-wrap" style="position:relative;"><div class="timeline-grid" style="--stage-count:${stages.length}; grid-template-rows: repeat(${numRows+1}, 1fr);" data-date="${date}" id="timeline-grid-${dayIdx}">`;
-
-      // Header row
-      html += `<div class="timeline-header"></div>`;
-      for (const stage of stages) {
-        html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
-      }
-
-      // Time labels and event cell containers
-      for(let row=0;row<slots.length;++row){
-        html += `<div class="timeline-time" data-time="${slots[row]}" style="grid-row:${row+2}; grid-column:1;">${slots[row]}</div>`;
-        for(let col=0;col<stages.length;++col){
-          html += `<div class="timeline-cell" style="grid-row:${row+2};grid-column:${col+2};" data-stage="${stages[col]}" data-row="${row}"></div>`;
-        }
-      }
-
-      // Render event blocks inside their correct cell containers, using flex layout for overlaps
-      for(let si=0;si<stages.length;++si){
-        const stage = stages[si];
-        // Group blocks by startIdx
-        const byRow = {};
-        for(const block of stageBlocks[stage]){
-          if(!byRow[block.startIdx]) byRow[block.startIdx]=[];
-          byRow[block.startIdx].push(block);
-        }
-        for(const row in byRow){
-          const cell = `<div></div>`; // Placeholder, not used
-          // We'll inject the stack below with JS after html generation
-          // Instead, we mark the cell for later
-          html += `<!--EVENT_STACK_${stage}_${row}-->`;
-        }
-      }
-
-      html += `</div></div>`;
-      return html;
-    }
-
-    function injectEventsToCells(events, stages, dayIdx=0) {
-      // For each day
-      const dayGrids = document.querySelectorAll(`.timeline-grid[data-date]`);
-      dayGrids.forEach(grid=>{
-        const date = grid.getAttribute('data-date');
-        // Find all cells
-        const cells = grid.querySelectorAll('.timeline-cell');
-        // For each cell, find which events start here and render them in a flexbox stack
-        cells.forEach(cell=>{
-          const stage = cell.getAttribute('data-stage');
-          const row = parseInt(cell.getAttribute('data-row'),10);
-          if(!stage||isNaN(row)) return;
-          // Find events for this stage and row
-          const dayEvents = events.filter(ev=>ev.date===date && ev.stage===stage);
-          if(dayEvents.length===0) return;
-          // Regenerate slot list
-          const slots = createTimeSlots(events.filter(ev=>ev.date===date));
-          const blocks = buildStageBlocks(dayEvents, slots);
-          // Find blocks starting at this row
-          const blocksHere = blocks.filter(b=>b.startIdx===row);
-          if(blocksHere.length>0){
-            // Render stack
-            const stack = document.createElement('div');
-            stack.className = 'event-stack';
-            stack.style.position = 'absolute';
-            stack.style.left = stack.style.top = stack.style.right = stack.style.bottom = 0;
-            blocksHere.forEach(block=>{
-              const div = document.createElement('div');
-              div.className = `timeline-event stage-${stage.toLowerCase()}`;
-              div.style.flex = `1 1 0`;
-              div.style.position = 'relative';
-              div.style.height = `calc(${block.span} * 100%)`;
-              div.style.zIndex = 3;
-              div.innerHTML = `
-                <div class="event-title">${block.ev.title}</div>
-                <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
-                ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
-              `;
-              // Use grid-row to span correct rows
-              div.style.gridRow = `span ${block.span}`;
-              div.style.height = `calc(${block.span} * 100%)`;
-              stack.appendChild(div);
-            });
-            cell.appendChild(stack);
-          }
-        });
-      });
-    }
-
-    // "Now" line logic for grid
-    function setNowLine() {
-      const now=new Date(),yyyy=now.getFullYear(),mm=(now.getMonth()+1).toString().padStart(2,'0'),dd=now.getDate().toString().padStart(2,'0');
-      const todayStr=`${yyyy}-${mm}-${dd}`;
-      const grids=document.querySelectorAll('.timeline-grid');
-      grids.forEach(grid=>{
-        const date=grid.getAttribute('data-date');
-        grid.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
-        if(date!==todayStr)return;
-        const timeDivs=Array.from(grid.querySelectorAll('.timeline-time'));
-        if(timeDivs.length===0)return;
-        const curMins=now.getHours()*60+now.getMinutes();
-        let found=false;
-        for(let i=0;i<timeDivs.length-1;++i){
-          const slotStart=timeToMinutes(timeDivs[i].dataset.time);
-          const slotEnd=timeToMinutes(timeDivs[i+1].dataset.time);
-          if(curMins>=slotStart&&curMins<slotEnd){
-            const slotDiv=timeDivs[i];
-            const nextSlotDiv=timeDivs[i+1];
-            const percent=(curMins-slotStart)/(slotEnd-slotStart);
-            const slotTop=slotDiv.offsetTop;
-            const slotHeight=nextSlotDiv.offsetTop-slotDiv.offsetTop;
-            const nowTop=slotTop+percent*slotHeight;
-            const line=document.createElement('div');
-            line.className='now-line';
-            line.style.top=nowTop+'px';
-            grid.parentElement.appendChild(line);
-            found=true;
-            break;
-          }
-        }
-        if(!found){
-          const lastDiv=timeDivs[timeDivs.length-1];
-          const line=document.createElement('div');
-          line.className='now-line';
-          line.style.top=(lastDiv.offsetTop+lastDiv.offsetHeight)+'px';
-          grid.parentElement.appendChild(line);
-        }
-      });
-    }
-
-    // Main loader
+    // Load your events.json
     fetch('events.json')
-      .then(r=>r.json())
-      .then(events=>{
-        const container=document.getElementById('timeline');
-        const grouped=groupEventsByDate(events);
-        let html='',dayIdx=0;
-        Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).forEach(([date,evs])=>{
-          const stages=getAllStages(evs);
-          html+=renderDayGrid(date,evs,stages,dayIdx++);
+      .then(resp => resp.json())
+      .then(data => {
+        // Map your events to FullCalendar format
+        const events = data.map(ev => ({
+          id: ev.title + ev.start + ev.stage,
+          resourceId: ev.stage,
+          title: ev.title + (ev.extra_info ? ' — ' + ev.extra_info : ''),
+          start: ev.date + 'T' + (ev.start.length === 4 ? '0' + ev.start : ev.start),
+          end: ev.date + 'T' + (ev.end.length === 4 ? '0' + ev.end : ev.end)
+        }));
+
+        const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+          initialView: 'resourceTimelineDay',
+          schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives', // ok for non-commercial
+          locale: 'nl',
+          height: 'auto',
+          slotMinTime: "08:00:00",
+          slotMaxTime: "24:30:00",
+          resourceAreaHeaderContent: 'Podium',
+          resources: stages,
+          events: events,
+          nowIndicator: true,
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'resourceTimelineDay,resourceTimelineWeek'
+          },
+          views: {
+            resourceTimelineDay: { buttonText: 'Dag' },
+            resourceTimelineWeek: { buttonText: 'Week' }
+          },
+          eventDidMount: function(info) {
+            // Optional: color coding per stage
+            if(info.event.extendedProps.resourceId === 'kaatsspelplein') {
+              info.el.style.background = '#eafaf5';
+              info.el.style.borderColor = '#1abc9c';
+            } else if(info.event.extendedProps.resourceId === 'viersprong') {
+              info.el.style.background = '#fcf3eb';
+              info.el.style.borderColor = '#e67e22';
+            } else if(info.event.extendedProps.resourceId === 'algemeen') {
+              info.el.style.background = '#f2f5fa';
+              info.el.style.borderColor = '#2e3d51';
+            }
+          },
+          eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false }
         });
-        container.innerHTML=html;
-        injectEventsToCells(events, getAllStages(events));
-        setTimeout(setNowLine,200);
-        setInterval(setNowLine,60*1000);
-      })
-      .catch(err=>{
-        document.getElementById('timeline').innerHTML="<p style='color:red'>Kon evenementen niet laden. Controleer het bestand 'events.json'.</p>";
-        console.error(err);
+        calendar.render();
       });
-    window.addEventListener('resize',()=>setTimeout(setNowLine,300));
   </script>
 </body>
 </html>
