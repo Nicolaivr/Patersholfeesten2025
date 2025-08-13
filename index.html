@@ -12,59 +12,47 @@
     header p { margin: 0.5rem 0 0 0; font-size: 1.15rem; font-weight: 400; }
     .timeline-container { max-width: 1300px; margin: 2rem auto; padding: 0 1rem; }
     .timeline-date { font-size: 1.4rem; font-weight: 700; color: #2e3d51; margin: 2.5rem 0 1rem 0; border-left: 5px solid #2e3d51; padding-left: 0.8em; background: #ebeff5; }
-    .timeline-grid-wrap { position: relative;}
-    .timeline-grid {
-      display: grid;
-      grid-template-columns: 80px repeat(var(--stage-count), 1fr);
-      border-radius: 8px;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-      overflow: visible;
-      position: relative;
-    }
-    .timeline-header { background: #e3eaf4; color: #2e3d51; font-weight: 600; text-align: center; padding: 0.6em 0.2em; border-bottom: 1px solid #d9e3f0; font-size: 1.05rem; position: sticky; top: 0; z-index: 2;}
-    .timeline-time { background: #f5f7fb; font-weight: 600; font-size: 1.02em; color: #2e3d51; text-align: right; padding: 0.4em 0.8em 0.4em 0.2em; border-right: 1px solid #e3eaf4; border-bottom: 1px solid #e3eaf4; min-height: 2.5em; box-sizing: border-box; position: relative; z-index: 1;}
-    .timeline-cell {
-      border-bottom: 1px solid #e3eaf4;
-      min-height: 2.5em;
-      padding: 0;
-      box-sizing: border-box;
-      position: relative;
-      background: #fff;
-      z-index: 1;
-    }
-    .timeline-event {
-      display: flex;
-      flex-direction: column;
-      margin: 0.1em 0.1em;
+    .timeline-table-wrap { position: relative; }
+    table.timeline-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); overflow: hidden; }
+    .timeline-table th, .timeline-table td { padding: 0.25em 0.4em; text-align: left; }
+    .timeline-table th { background: #e3eaf4; color: #2e3d51; font-weight: 600; font-size: 1.05rem; border-bottom: 1px solid #d9e3f0; }
+    .timeline-table td { border-bottom: 1px solid #e3eaf4; min-width: 120px; min-height: 2.5em; background: #fff; position: relative;}
+    .timeline-table td.timecol { font-weight: 600; background: #f5f7fb; color: #2e3d51; min-width: 60px; text-align: right; border-right: 1px solid #e3eaf4; }
+    .event-block {
       border-radius: 5px;
-      overflow: hidden;
-      border: 1px solid #ddd;
-      min-width: 0;
-      background: #fafcff;
-      position: absolute;
-      width: 96%;
-      height: 100%;
-      left: 2%;
-      top: 0;
+      border: 2.5px solid #1abc9c;
+      background: #eafaf5;
+      padding: 0.3em 0.6em;
+      margin: 0.1em 0;
+      font-size: 1em;
+      font-weight: 500;
+      position: relative;
       z-index: 3;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      overflow: hidden;
     }
-    .timeline-event.stage-kaatsspelplein { border-left: 5px solid #1abc9c; background: #eafaf5; border-color: #1abc9c; }
-    .timeline-event.stage-viersprong { border-left: 5px solid #e67e22; background: #fcf3eb; border-color: #e67e22; }
-    .timeline-event.stage-algemeen { border-left: 5px solid #2e3d51; background: #f2f5fa; border-color: #2e3d51; }
+    .event-block.stage-kaatsspelplein { border-color: #1abc9c; background: #eafaf5;}
+    .event-block.stage-viersprong { border-color: #e67e22; background: #fcf3eb;}
+    .event-block.stage-algemeen { border-color: #2e3d51; background: #f2f5fa;}
     .event-title { font-weight: bold; font-size: 1.01em; }
     .event-info { font-size: 0.95em; color: #445; }
     .event-time { font-size: 0.92em; font-style: italic; color: #555; }
-    .now-line { position: absolute; left: 0; right: 0; height: 2.5px; background: red; z-index: 10; pointer-events: none; transition: top 0.2s;}
-    @media (max-width: 800px) {
-      .timeline-header, .timeline-time, .timeline-cell, .timeline-event { font-size: 0.97rem; }
-      header h1 { font-size: 2rem; }
-      .timeline-container { padding: 0 0.2rem; }
-      .timeline-grid { font-size: 0.93rem; }
+    .event-stack { display: flex; gap: 0.4em;}
+    .now-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2.5px;
+      background: red;
+      z-index: 10;
+      pointer-events: none;
+      transition: top 0.2s;
+    }
+    @media (max-width: 900px) {
+      .timeline-table th, .timeline-table td { font-size: 0.91rem; }
     }
     @media (max-width: 600px) {
-      .timeline-grid { font-size: 0.88rem; }
-      .timeline-header { font-size: 0.94rem; }
+      .timeline-table, .timeline-table thead, .timeline-table tbody, .timeline-table tr, .timeline-table th, .timeline-table td { font-size: 0.88rem;}
+      .timeline-table td { min-width: 50px; }
     }
   </style>
 </head>
@@ -77,193 +65,173 @@
     <div class="timeline-container" id="timeline"></div>
   </main>
   <script>
-    function padTime(t) {
-      return t.length === 5 ? t : t.length === 4 ? '0' + t : t;
-    }
-    function timeToMinutes(t) {
-      const [h, m] = t.split(':').map(Number);
-      return h * 60 + m;
-    }
-    function minutesToTime(m) {
-      const h = Math.floor(m / 60);
-      const mm = m % 60;
-      return h.toString().padStart(2, '0') + ':' + mm.toString().padStart(2, '0');
-    }
-    function createTimeSlots(events, slotMinutes = 30) {
-      let min = '24:00', max = '00:00';
-      for (const ev of events) {
-        if (padTime(ev.start) < min) min = padTime(ev.start);
-        if (padTime(ev.end) > max) max = padTime(ev.end);
-      }
-      min = padTime(min);
-      max = padTime(max);
-      const slots = [];
-      let cur = timeToMinutes(min);
-      const end = timeToMinutes(max);
-      while (cur <= end) {
-        slots.push(minutesToTime(cur));
-        cur += slotMinutes;
-      }
+    const slotMinutes = 30;
+    function padTime(t) { return t.length === 5 ? t : t.length === 4 ? '0'+t : t; }
+    function timeToMinutes(t) { const [h,m]=t.split(':').map(Number); return h*60+m; }
+    function minutesToTime(m) { const h=Math.floor(m/60),mm=m%60; return h.toString().padStart(2,'0')+':'+mm.toString().padStart(2,'0'); }
+    function createTimeSlots(events) {
+      let min='24:00',max='00:00';
+      for(const ev of events){ if(padTime(ev.start)<min)min=padTime(ev.start); if(padTime(ev.end)>max)max=padTime(ev.end);}
+      let slots=[],cur=timeToMinutes(min),end=timeToMinutes(max);
+      while(cur<=end){ slots.push(minutesToTime(cur)); cur+=slotMinutes;}
       return slots;
     }
     function getAllStages(events) {
-      const stageSet = new Set(events.map(ev => ev.stage));
-      const order = ['kaatsspelplein', 'viersprong', 'algemeen'];
-      const stages = Array.from(stageSet);
-      stages.sort((a, b) => {
-        const ai = order.indexOf(a), bi = order.indexOf(b);
-        if (ai === -1 && bi === -1) return a.localeCompare(b);
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-      });
-      return stages;
+      const set=new Set(events.map(ev=>ev.stage));
+      const order=["kaatsspelplein","viersprong","algemeen"];
+      const arr=Array.from(set);
+      arr.sort((a,b)=>{const ai=order.indexOf(a),bi=order.indexOf(b);if(ai==-1&&bi==-1)return a.localeCompare(b);if(ai==-1)return 1;if(bi==-1)return -1;return ai-bi;});
+      return arr;
     }
     function groupEventsByDate(events) {
-      const grouped = {};
-      for (const ev of events) {
-        if (!grouped[ev.date]) grouped[ev.date] = [];
-        grouped[ev.date].push(ev);
-      }
+      const grouped={};
+      for(const ev of events){ if(!grouped[ev.date])grouped[ev.date]=[]; grouped[ev.date].push(ev);}
       return grouped;
     }
-    function renderDayGrid(date, events, stages, slotMinutes = 30, dayIdx = 0) {
-      const slots = createTimeSlots(events, slotMinutes);
-      const numRows = slots.length;
-      const stageMap = {};
-      stages.forEach(s => stageMap[s] = []);
-      for (const ev of events) {
-        stageMap[ev.stage].push(ev);
-      }
-      // For each stage, build a per-slot skip counter
-      const skip = {};
-      stages.forEach(stage => skip[stage]=0);
-      // For each stage, per slot, find which block (if any) starts here
-      const stageBlockStarts = {};
-      stages.forEach(stage => {
-        stageBlockStarts[stage] = {};
-        stageMap[stage].forEach((ev, idx) => {
-          const startM = timeToMinutes(padTime(ev.start));
-          const endM = timeToMinutes(padTime(ev.end));
-          let startIdx = slots.findIndex(s => timeToMinutes(s) === startM);
-          if (startIdx === -1) {
-            startIdx = slots.findIndex(s => timeToMinutes(s) > startM) - 1;
-            if (startIdx < 0) startIdx = 0;
-          }
-          let endIdx = slots.findIndex(s => timeToMinutes(s) >= endM);
-          if (endIdx === -1) endIdx = slots.length;
-          const span = Math.max(1, endIdx - startIdx);
-          if (!stageBlockStarts[stage][startIdx]) stageBlockStarts[stage][startIdx] = [];
-          stageBlockStarts[stage][startIdx].push({ev, span});
+    // For each stage, build a list of event blocks: startSlot, span, and overlap index.
+    function buildStageBlocks(stageEvents, slots) {
+      // Sort events by start time
+      stageEvents = stageEvents.slice().sort((a, b) => timeToMinutes(padTime(a.start)) - timeToMinutes(padTime(b.start)));
+      // Build blocks: startSlot, span
+      const blocks = stageEvents.map(ev => {
+        const sM = timeToMinutes(padTime(ev.start));
+        const eM = timeToMinutes(padTime(ev.end));
+        let startIdx = slots.findIndex(s => timeToMinutes(s) === sM);
+        if (startIdx === -1) startIdx = slots.findIndex(s => timeToMinutes(s) > sM) - 1;
+        if (startIdx<0) startIdx=0;
+        let endIdx = slots.findIndex(s => timeToMinutes(s) >= eM);
+        if (endIdx === -1) endIdx = slots.length;
+        const span = Math.max(1, endIdx - startIdx);
+        return {ev, startIdx, span};
+      });
+      // For overlap: for each slot, track what blocks are present
+      const slotBlocks = Array(slots.length).fill(0).map(()=>[]);
+      blocks.forEach((block, idx) => {
+        for(let i=block.startIdx;i<block.startIdx+block.span && i<slots.length;++i) slotBlocks[i].push(idx);
+      });
+      // For each block, determine overlapIdx and totalOverlaps
+      blocks.forEach((block, idx) => {
+        let maxOverlap=1,myCol=0;
+        for(let i=block.startIdx;i<block.startIdx+block.span&&i<slots.length;++i){
+          const overlaps=slotBlocks[i];
+          maxOverlap=Math.max(maxOverlap,overlaps.length);
+          myCol=Math.max(myCol,overlaps.indexOf(idx));
+        }
+        block.overlapIdx=myCol;
+        block.overlapTotal=maxOverlap;
+      });
+      return blocks;
+    }
+    function renderDayTable(date, events, stages, dayIdx=0) {
+      const slots = createTimeSlots(events);
+      const stageMap={};
+      stages.forEach(s=>stageMap[s]=[]);
+      for(const ev of events){ stageMap[ev.stage].push(ev);}
+      // For each stage, build blocks
+      const stageBlocks={};
+      stages.forEach(stage=>{stageBlocks[stage]=buildStageBlocks(stageMap[stage],slots);});
+      // Build per stage: for each row, a skip counter
+      const skip={}; stages.forEach(stage=>skip[stage]=0);
+      // For each stage, per slot, find which block(s) start here
+      const stageBlockStarts={};
+      stages.forEach(stage=>{
+        stageBlockStarts[stage]={};
+        stageBlocks[stage].forEach((block,idx)=>{
+          if(!stageBlockStarts[stage][block.startIdx])stageBlockStarts[stage][block.startIdx]=[];
+          stageBlockStarts[stage][block.startIdx].push({...block,blockIdx:idx});
         });
       });
 
       let html = `<div class="timeline-date">${new Date(date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
-      html += `<div class="timeline-grid-wrap"><div class="timeline-grid" style="--stage-count:${stages.length}" data-date="${date}" data-dayidx="${dayIdx}" id="timeline-grid-${dayIdx}">`;
+      html += `<div class="timeline-table-wrap" style="position:relative;"><table class="timeline-table" data-date="${date}" id="timeline-table-${dayIdx}"><thead><tr><th></th>${stages.map(s=>`<th>${s.charAt(0).toUpperCase()+s.slice(1)}</th>`).join('')}</tr></thead><tbody>`;
 
-      // Header row
-      html += `<div class="timeline-header"></div>`;
-      for (const stage of stages) {
-        html += `<div class="timeline-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</div>`;
-      }
-
-      // Slot rows
-      for (let row = 0; row < slots.length; ++row) {
-        html += `<div class="timeline-time" data-time="${slots[row]}">${slots[row]}</div>`;
-        for (const stage of stages) {
-          if (skip[stage] > 0) {
-            skip[stage]--;
-            html += `<div class="timeline-cell"></div>`;
-            continue;
-          }
-          const blocksHere = (stageBlockStarts[stage][row] || []);
-          if (blocksHere.length > 0) {
-            // If overlapping, render side by side, else just one
-            html += `<div class="timeline-cell" style="padding:0; position:relative;">`;
-            blocksHere.forEach(block => {
-              html += `<div class="timeline-event stage-${stage.toLowerCase()}" style="position:absolute; top:0; left:0; right:0; bottom:0; height:calc(100% * ${block.span}); z-index:3;">
+      for(let row=0;row<slots.length;++row){
+        html+=`<tr>`;
+        html+=`<td class="timecol" data-time="${slots[row]}">${slots[row]}</td>`;
+        for(const stage of stages){
+          if(skip[stage]>0){skip[stage]--;html+=`<td></td>`;continue;}
+          const blocksHere=(stageBlockStarts[stage][row]||[]);
+          if(blocksHere.length>0){
+            // Overlapping events: side-by-side in a flex container
+            html+=`<td style="vertical-align:top;position:relative;">`;
+            html+=`<div class="event-stack">`;
+            for(const block of blocksHere){
+              html+=`<div class="event-block stage-${stage.toLowerCase()}" style="width:${100/block.overlapTotal}%;margin-left:${block.overlapIdx*2}px;" rowspan="${block.span}">
                 <div class="event-title">${block.ev.title}</div>
                 <div class="event-time">${block.ev.start}${block.ev.end!==block.ev.start?` &ndash; ${block.ev.end}`:''}</div>
                 ${block.ev.extra_info?`<div class="event-info">${block.ev.extra_info}</div>`:''}
               </div>`;
-              if (block.span > 1) skip[stage] = block.span-1;
-            });
-            html += `</div>`;
-          } else {
-            html += `<div class="timeline-cell"></div>`;
+              if(block.span>1)skip[stage]=block.span-1;
+            }
+            html+=`</div></td>`;
+          }else{
+            html+=`<td></td>`;
           }
         }
+        html+=`</tr>`;
       }
-      html += `</div></div>`;
+      html+=`</tbody></table></div>`;
       return html;
     }
-
-    // For the "now" line
+    // "Now" line logic for tables
     function setNowLine() {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = (now.getMonth()+1).toString().padStart(2,'0');
-      const dd = now.getDate().toString().padStart(2,'0');
-      const todayStr = `${yyyy}-${mm}-${dd}`;
-      // Find grid for today
-      const grids = document.querySelectorAll('.timeline-grid');
-      grids.forEach(grid => {
-        const date = grid.getAttribute('data-date');
-        grid.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
-        if (date !== todayStr) return;
-        const timeDivs = Array.from(grid.querySelectorAll('.timeline-time'));
-        if (timeDivs.length === 0) return;
-        const curMinutes = now.getHours()*60 + now.getMinutes();
-        let found = false;
-        for (let i = 0; i < timeDivs.length-1; ++i) {
-          const slotStart = timeToMinutes(timeDivs[i].dataset.time);
-          const slotEnd = timeToMinutes(timeDivs[i+1].dataset.time);
-          if (curMinutes >= slotStart && curMinutes < slotEnd) {
-            const slotDiv = timeDivs[i];
-            const nextSlotDiv = timeDivs[i+1];
-            const percent = (curMinutes - slotStart) / (slotEnd - slotStart);
-            const slotTop = slotDiv.offsetTop;
-            const slotHeight = nextSlotDiv.offsetTop - slotDiv.offsetTop;
-            const nowTop = slotTop + percent * slotHeight;
-            const line = document.createElement('div');
-            line.className = 'now-line';
-            line.style.top = nowTop+'px';
-            grid.parentElement.appendChild(line);
-            found = true;
+      const now=new Date(),yyyy=now.getFullYear(),mm=(now.getMonth()+1).toString().padStart(2,'0'),dd=now.getDate().toString().padStart(2,'0');
+      const todayStr=`${yyyy}-${mm}-${dd}`;
+      const tables=document.querySelectorAll('.timeline-table');
+      tables.forEach(table=>{
+        const date=table.getAttribute('data-date');
+        table.parentElement.querySelectorAll('.now-line').forEach(el=>el.remove());
+        if(date!==todayStr)return;
+        const timeTds=Array.from(table.querySelectorAll('td.timecol'));
+        if(timeTds.length===0)return;
+        const curMins=now.getHours()*60+now.getMinutes();
+        let found=false;
+        for(let i=0;i<timeTds.length-1;++i){
+          const slotStart=timeToMinutes(timeTds[i].dataset.time);
+          const slotEnd=timeToMinutes(timeTds[i+1].dataset.time);
+          if(curMins>=slotStart&&curMins<slotEnd){
+            const slotTd=timeTds[i];
+            const nextSlotTd=timeTds[i+1];
+            const percent=(curMins-slotStart)/(slotEnd-slotStart);
+            const slotTop=slotTd.offsetTop;
+            const slotHeight=nextSlotTd.offsetTop-slotTd.offsetTop;
+            const nowTop=slotTop+percent*slotHeight;
+            const line=document.createElement('div');
+            line.className='now-line';
+            line.style.top=nowTop+'px';
+            table.parentElement.appendChild(line);
+            found=true;
             break;
           }
         }
-        if (!found) {
-          const lastDiv = timeDivs[timeDivs.length-1];
-          const line = document.createElement('div');
-          line.className = 'now-line';
-          line.style.top = (lastDiv.offsetTop + lastDiv.offsetHeight)+'px';
-          grid.parentElement.appendChild(line);
+        if(!found){
+          const lastTd=timeTds[timeTds.length-1];
+          const line=document.createElement('div');
+          line.className='now-line';
+          line.style.top=(lastTd.offsetTop+lastTd.offsetHeight)+'px';
+          table.parentElement.appendChild(line);
         }
       });
     }
-
     fetch('events.json')
-      .then(r => r.json())
-      .then(events => {
-        const container = document.getElementById('timeline');
-        const grouped = groupEventsByDate(events);
-        let html = '';
-        let dayIdx = 0;
-        Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).forEach(([date, evs]) => {
-          const stages = getAllStages(evs);
-          html += renderDayGrid(date, evs, stages, 30, dayIdx++);
+      .then(r=>r.json())
+      .then(events=>{
+        const container=document.getElementById('timeline');
+        const grouped=groupEventsByDate(events);
+        let html='',dayIdx=0;
+        Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).forEach(([date,evs])=>{
+          const stages=getAllStages(evs);
+          html+=renderDayTable(date,evs,stages,dayIdx++);
         });
-        container.innerHTML = html;
-        setTimeout(setNowLine, 200);
-        setInterval(setNowLine, 60*1000);
+        container.innerHTML=html;
+        setTimeout(setNowLine,200);
+        setInterval(setNowLine,60*1000);
       })
-      .catch(err => {
-        document.getElementById('timeline').innerHTML =
-          "<p style='color:red'>Kon evenementen niet laden. Controleer het bestand 'events.json'.</p>";
+      .catch(err=>{
+        document.getElementById('timeline').innerHTML="<p style='color:red'>Kon evenementen niet laden. Controleer het bestand 'events.json'.</p>";
         console.error(err);
       });
-    window.addEventListener('resize', () => setTimeout(setNowLine, 300));
+    window.addEventListener('resize',()=>setTimeout(setNowLine,300));
   </script>
 </body>
 </html>
