@@ -22,14 +22,13 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.11/index.global.min.js"></script>
   <script>
-    // Map your stages to resources
+    // Define your possible stages as resources
     const stages = [
       { id: 'kaatsspelplein', title: 'Kaatsspelplein' },
       { id: 'viersprong', title: 'Viersprong' },
       { id: 'algemeen', title: 'Algemeen' }
     ];
 
-    // Load your events.json
     fetch('events.json')
       .then(resp => resp.json())
       .then(data => {
@@ -42,13 +41,19 @@
           end: ev.date + 'T' + (ev.end.length === 4 ? '0' + ev.end : ev.end)
         }));
 
+        // Calculate the earliest and latest event for slotMinTime/slotMaxTime
+        const mins = data.map(ev => Number((ev.start.length === 4 ? '0'+ev.start : ev.start).split(':')[0]));
+        const maxs = data.map(ev => Number((ev.end.length === 4 ? '0'+ev.end : ev.end).split(':')[0]));
+        const minHour = Math.min(...mins, 8);
+        const maxHour = Math.max(...maxs, 24);
+
         const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+          schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
           initialView: 'resourceTimelineDay',
-          schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives', // ok for non-commercial
           locale: 'nl',
           height: 'auto',
-          slotMinTime: "08:00:00",
-          slotMaxTime: "24:30:00",
+          slotMinTime: String(minHour).padStart(2, '0') + ':00:00',
+          slotMaxTime: String(maxHour+2).padStart(2, '0') + ':00:00',
           resourceAreaHeaderContent: 'Podium',
           resources: stages,
           events: events,
