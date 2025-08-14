@@ -2,128 +2,189 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
-<title>Festival Line-up</title>
+<title>Festival Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700&display=swap" rel="stylesheet">
 <style>
   body {
-    font-family: Arial, sans-serif;
+    font-family: 'Barlow Condensed', sans-serif;
     margin: 0;
-    background: #f9f9f9;
+    background: #fafafa;
   }
-  .schedule-container {
-    display: flex;
+  .day-container {
+    margin: 20px;
+  }
+  .day-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .schedule {
+    display: grid;
+    grid-template-columns: 80px 1fr;
     overflow-x: auto;
-    padding: 20px;
-    gap: 10px;
+    position: relative;
+    border-top: 1px solid #ccc;
   }
-  .stage-column {
-    background: white;
-    border-radius: 8px;
-    flex: 0 0 250px;
+  .times {
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.9em;
+    color: #555;
+  }
+  .stages {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 200px;
+    gap: 10px;
+    position: relative;
+    padding-left: 10px;
+  }
+  .stage-column {
+    position: relative;
+    background: #fff;
+    border-radius: 5px;
     border: 1px solid #ddd;
   }
-  .stage-header {
-    background: #222;
-    color: white;
+  .stage-title {
+    background: #333;
+    color: #fff;
     text-align: center;
-    padding: 10px;
-    font-weight: bold;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+    font-weight: 700;
+    padding: 8px 0;
     position: sticky;
     top: 0;
     z-index: 2;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
   }
   .event {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    position: relative;
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    background: #e63946;
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 0.85em;
+    box-sizing: border-box;
     cursor: pointer;
-  }
-  .event:hover {
-    background: #f0f0f0;
+    overflow: hidden;
   }
   .tooltip {
-    display: none;
     position: absolute;
-    left: 100%;
-    top: 0;
-    margin-left: 10px;
-    background: #222;
-    color: white;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
     padding: 6px 8px;
     border-radius: 4px;
-    white-space: nowrap;
-    z-index: 5;
-  }
-  .event:hover .tooltip {
-    display: block;
-  }
-  .time {
-    color: #555;
-    font-size: 0.9em;
-    margin-bottom: 4px;
-  }
-  .title {
-    font-weight: bold;
+    font-size: 0.8em;
+    display: none;
+    z-index: 100;
+    pointer-events: none;
+    max-width: 200px;
   }
 </style>
 </head>
 <body>
 
-<h1 style="text-align:center;margin:20px 0;">Festival Line-up</h1>
-<div id="schedule" class="schedule-container"></div>
+<div id="container"></div>
+<div class="tooltip" id="tooltip"></div>
 
 <script>
-fetch('events.json')
-  .then(response => response.json())
-  .then(data => {
-    // Group events by stage
-    const stages = [...new Set(data.map(e => e.stage))];
-    const container = document.getElementById('schedule');
+async function loadSchedule() {
+  const res = await fetch('events.json');
+  const events = await res.json();
+
+  const days = {};
+  events.forEach(e => {
+    if (!days[e.date]) days[e.date] = [];
+    days[e.date].push(e);
+  });
+
+  const container = document.getElementById('container');
+  const tooltip = document.getElementById('tooltip');
+
+  for (const date of Object.keys(days).sort()) {
+    const dayEvents = days[date];
+    const stages = [...new Set(dayEvents.map(e => e.stage))];
+
+    // Earliest and latest time
+    const timesInMinutes = dayEvents.flatMap(e => [toMinutes(e.start), toMinutes(e.end)]);
+    const minTime = Math.min(...timesInMinutes);
+    const maxTime = Math.max(...timesInMinutes);
+
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day-container';
+    dayDiv.innerHTML = `<div class="day-title">${date}</div>`;
+
+    const scheduleDiv = document.createElement('div');
+    scheduleDiv.className = 'schedule';
+
+    // Time column
+    const timesCol = document.createElement('div');
+    timesCol.className = 'times';
+    for (let t = minTime; t <= maxTime; t += 60) {
+      const h = Math.floor(t / 60);
+      const m = t % 60;
+      const label = document.createElement('div');
+      label.style.height = '60px';
+      label.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      timesCol.appendChild(label);
+    }
+
+    // Stages grid
+    const stagesGrid = document.createElement('div');
+    stagesGrid.className = 'stages';
 
     stages.forEach(stage => {
-      const stageEvents = data
-        .filter(e => e.stage === stage)
-        .sort((a, b) => (a.start > b.start ? 1 : -1));
+      const stageCol = document.createElement('div');
+      stageCol.className = 'stage-column';
+      stageCol.innerHTML = `<div class="stage-title">${stage}</div>`;
 
-      const col = document.createElement('div');
-      col.className = 'stage-column';
+      const stageEvents = dayEvents.filter(e => e.stage === stage);
+      stageEvents.forEach(e => {
+        const eventDiv = document.createElement('div');
+        eventDiv.className = 'event';
+        eventDiv.textContent = e.title;
 
-      const header = document.createElement('div');
-      header.className = 'stage-header';
-      header.textContent = stage;
-      col.appendChild(header);
+        const top = (toMinutes(e.start) - minTime);
+        const height = Math.max(20, (toMinutes(e.end) - toMinutes(e.start)));
+        eventDiv.style.top = `${top}px`;
+        eventDiv.style.height = `${height}px`;
 
-      stageEvents.forEach(ev => {
-        const evDiv = document.createElement('div');
-        evDiv.className = 'event';
-
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'time';
-        timeDiv.textContent = `${ev.start} - ${ev.end}`;
-
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'title';
-        titleDiv.textContent = ev.title;
-
-        evDiv.appendChild(timeDiv);
-        evDiv.appendChild(titleDiv);
-
-        if (ev.extra_info) {
-          const tooltip = document.createElement('div');
-          tooltip.className = 'tooltip';
-          tooltip.textContent = ev.extra_info;
-          evDiv.appendChild(tooltip);
+        if (e.extra_info) {
+          eventDiv.addEventListener('mouseenter', ev => {
+            tooltip.style.display = 'block';
+            tooltip.textContent = e.extra_info;
+          });
+          eventDiv.addEventListener('mousemove', ev => {
+            tooltip.style.top = ev.pageY + 10 + 'px';
+            tooltip.style.left = ev.pageX + 10 + 'px';
+          });
+          eventDiv.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+          });
         }
 
-        col.appendChild(evDiv);
+        stageCol.appendChild(eventDiv);
       });
 
-      container.appendChild(col);
+      stagesGrid.appendChild(stageCol);
     });
-  });
+
+    scheduleDiv.appendChild(timesCol);
+    scheduleDiv.appendChild(stagesGrid);
+    dayDiv.appendChild(scheduleDiv);
+    container.appendChild(dayDiv);
+  }
+}
+
+function toMinutes(timeStr) {
+  const [h,m] = timeStr.split(':').map(Number);
+  return h*60 + m;
+}
+
+loadSchedule();
 </script>
 
 </body>
