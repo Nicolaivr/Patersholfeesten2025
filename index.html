@@ -535,9 +535,19 @@
 
         init();
         
+        let isMobileLayout = window.innerWidth <= 768;
+
         // Luister naar de window resize event om de lay-out te updaten
         window.addEventListener('resize', () => {
-            renderSchedule(currentDay);
+            // De browser kan een 'resize' event triggeren tijdens het scrollen op mobiel.
+            // Dit kan de pagina opnieuw laten renderen, waardoor deze naar boven springt.
+            // We controleren nu of de lay-out daadwerkelijk is gewijzigd
+            // van desktop naar mobiel of vice versa, voordat we de renderSchedule-functie aanroepen.
+            const newIsMobileLayout = window.innerWidth <= 768;
+            if (newIsMobileLayout !== isMobileLayout) {
+                isMobileLayout = newIsMobileLayout;
+                renderSchedule(currentDay);
+            }
         });
     </script>
 </body>
