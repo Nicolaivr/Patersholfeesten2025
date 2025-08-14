@@ -32,14 +32,6 @@
     "extra_info": "Ter ere van de overleden buurtbewoners. Opgeluisterd met een orgelrecital door Paul De Maeyer. Sint Stefanuskerk, St. Margrietstr"
   },
   {
-    "date": "2025-08-15",
-    "start": "19:00",
-    "end": "20:00",
-    "stage": "algemeen",
-    "title": "Feestelijke optocht Koninklijke Harmonie St. Cecilia",
-    "extra_info": "Trekt van de St.-Stefanuskerk door de straten van de wijk, naar de gedenksteen in de Rodekoningstr"
-  },
-  {
     "date": "2025-08-16",
     "start": "10:00",
     "end": "12:00",
@@ -54,6 +46,14 @@
     "stage": "algemeen",
     "title": "Eucharistieviering",
     "extra_info": "In de Sint-Stefanus parochiekerk"
+  },
+  {
+    "date": "2025-08-16",
+    "start": "19:00",
+    "end": "20:00",
+    "stage": "algemeen",
+    "title": "Feestelijke optocht Koninklijke Harmonie St. Cecilia",
+    "extra_info": "Trekt van de St.-Stefanuskerk door de straten van de wijk, naar de gedenksteen in de Rodekoningstr"
   },
   {
     "date": "2025-08-17",
