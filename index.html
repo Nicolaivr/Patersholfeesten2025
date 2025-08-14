@@ -132,7 +132,7 @@
         
         .stage-line {
             border-left: 1px solid var(--border-color);
-            grid-row: 1 / span 97; /* Zorgt ervoor dat de lijn de hele hoogte vult */
+            /* De hoogte van de lijn wordt later dynamisch berekend */
         }
 
         .hour-line {
@@ -331,7 +331,6 @@
         // Functie om de evenementengegevens op te halen van de opgegeven URL en cache te omzeilen
         const loadEvents = async () => {
             try {
-                // Voeg een cache-busting timestamp toe aan de URL om te voorkomen dat de browser de cache gebruikt
                 const cacheBuster = new Date().getTime();
                 const urlWithBuster = `${scheduleUrl}?t=${cacheBuster}`;
                 const response = await fetch(urlWithBuster);
@@ -342,7 +341,6 @@
                 
                 if (Array.isArray(data)) {
                     eventsData = data;
-                    // Dynamisch de unieke podia en datums ophalen uit de data
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
                     const uniqueDates = [...new Set(eventsData.map(event => event.date))].sort();
                     
@@ -366,20 +364,19 @@
             const timeLines = document.querySelectorAll('.current-time-line');
             const eventCards = document.querySelectorAll('.event-card');
             
-            // Verwijder eerst alle 'current' klassen van evenementen
             eventCards.forEach(card => card.classList.remove('current'));
             
             const isToday = currentDay === today;
-
-            // Bepaal de huidige tijd in minuten
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            
             const isMobile = window.innerWidth <= 768;
 
             if (isToday) {
-                // Toon de tijdslijn op desktop
+                // Vind het startmoment van de kalender om de positie van de rode lijn te berekenen
+                const firstEvent = eventsData.filter(event => event.date === currentDay).sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start))[0];
+                const newStartMinutes = firstEvent ? Math.max(0, timeToMinutes(firstEvent.start) - 60) : 0;
+                
                 if (!isMobile) {
-                    const topPosition = (currentMinutes / 15) * 24;
+                    const topPosition = ((currentMinutes - newStartMinutes) / 15) * 24;
                     timeLines.forEach(line => {
                         line.style.top = `${topPosition}px`;
                         line.style.display = 'block';
@@ -388,7 +385,6 @@
                     timeLines.forEach(line => line.style.display = 'none');
                 }
 
-                // Bepaal welk evenement momenteel plaatsvindt en laat het oplichten (zowel desktop als mobiel)
                 eventCards.forEach(card => {
                     const startMinutes = timeToMinutes(card.dataset.start);
                     const endMinutes = timeToMinutes(card.dataset.end);
@@ -398,7 +394,6 @@
                     }
                 });
             } else {
-                // Verberg de tijdslijn en verwijder de 'current' klasse als de geselecteerde dag niet vandaag is
                 timeLines.forEach(line => line.style.display = 'none');
             }
         };
@@ -430,14 +425,14 @@
                     stageEventsList.className = 'mobile-events-list';
 
                     const stageEvents = filteredEvents.filter(event => event.stage === stage)
-                                                    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.end));
+                                                    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
                     stageEvents.forEach(event => {
                         const eventDiv = document.createElement('div');
                         eventDiv.className = 'event-card';
                         eventDiv.style.backgroundColor = getEventColor(event.stage);
-                        eventDiv.dataset.start = event.start; // Voeg data-attribuut toe
-                        eventDiv.dataset.end = event.end; // Voeg data-attribuut toe
+                        eventDiv.dataset.start = event.start;
+                        eventDiv.dataset.end = event.end;
                         eventDiv.innerHTML = `
                             <div>
                                 <div class="event-title">${event.title}</div>
@@ -454,6 +449,17 @@
 
             } else {
                 // Desktop lay-out: podia naast elkaar in een grid
+                if (filteredEvents.length === 0) {
+                    scheduleGridContainer.innerHTML = '<div style="text-align: center; color: #ccc;">Geen evenementen voor deze dag.</div>';
+                    return;
+                }
+
+                // Bepaal het startmoment van de kalender (een uur voor het eerste evenement)
+                const sortedEvents = filteredEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+                const firstEvent = sortedEvents[0];
+                const newStartMinutes = Math.max(0, timeToMinutes(firstEvent.start) - 60);
+                const startHour = Math.floor(newStartMinutes / 60);
+                
                 const stageLabelsContainer = document.createElement('div');
                 stageLabelsContainer.id = 'stage-labels';
                 stageLabelsContainer.className = 'stage-labels';
@@ -473,9 +479,15 @@
                 scheduleContainer.style.setProperty('--stages', stages.length);
                 scheduleGridContainer.appendChild(scheduleContainer);
                 
-                // Voeg tijdlabels en horizontale lijnen toe
-                for (let hour = 0; hour < 25; hour++) {
-                    const topPosition = hour * 4 * 24;
+                // Voeg tijdlabels en horizontale lijnen toe, beginnend bij het nieuwe startuur
+                const totalMinutes = (24 * 60) - newStartMinutes;
+                const totalRows = Math.ceil(totalMinutes / 15);
+                
+                for (let hour = startHour; hour < 25; hour++) {
+                    const relativeMinutes = (hour * 60) - newStartMinutes;
+                    if (relativeMinutes < 0) continue; // Zorg ervoor dat we niet vóór het nieuwe startmoment beginnen
+                    
+                    const topPosition = (relativeMinutes / 15) * 24;
                     
                     const hourLine = document.createElement('div');
                     hourLine.className = 'hour-line';
@@ -484,7 +496,7 @@
                     
                     const timeLabelDiv = document.createElement('div');
                     timeLabelDiv.className = `time-label`;
-                    timeLabelDiv.style.gridRowStart = hour * 4 + 1;
+                    timeLabelDiv.style.gridRowStart = (relativeMinutes / 15) + 1;
                     timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
                     scheduleContainer.appendChild(timeLabelDiv);
                 }
@@ -494,17 +506,18 @@
                     const stageGridLine = document.createElement('div');
                     stageGridLine.className = `stage-line`;
                     stageGridLine.style.gridColumn = i + 1;
-                    stageGridLine.style.gridRow = `1 / 97`;
+                    // De hoogte van de lijn wordt bepaald door het aantal rijen
+                    stageGridLine.style.gridRow = `1 / ${totalRows + 1}`; 
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
-                // Render evenementen
+                // Render evenementen en pas hun positie aan op basis van het nieuwe startmoment
                 filteredEvents.forEach(event => {
                     const startTimeMinutes = timeToMinutes(event.start);
                     const endTimeMinutes = timeToMinutes(event.end);
                     
-                    const startRow = Math.floor(startTimeMinutes / 15) + 1;
-                    let endRow = Math.ceil(endTimeMinutes / 15) + 1;
+                    const startRow = Math.floor((startTimeMinutes - newStartMinutes) / 15) + 1;
+                    let endRow = Math.ceil((endTimeMinutes - newStartMinutes) / 15) + 1;
                     let rowSpan = endRow - startRow;
                     
                     if (rowSpan <= 0) {
@@ -519,8 +532,8 @@
                     eventDiv.style.gridRow = `${startRow} / span ${rowSpan}`;
                     eventDiv.style.gridColumn = stageIndex;
                     eventDiv.style.backgroundColor = getEventColor(event.stage);
-                    eventDiv.dataset.start = event.start; // Voeg data-attribuut toe
-                    eventDiv.dataset.end = event.end; // Voeg data-attribuut toe
+                    eventDiv.dataset.start = event.start;
+                    eventDiv.dataset.end = event.end;
                     
                     eventDiv.innerHTML = `
                         <div>
@@ -532,9 +545,8 @@
                     scheduleContainer.appendChild(eventDiv);
                 });
 
-                // Voeg de rode tijdslijn toe
                 const timeLine = document.createElement('div');
-                    timeLine.className = 'current-time-line';
+                timeLine.className = 'current-time-line';
                 scheduleContainer.appendChild(timeLine);
             }
             
@@ -548,7 +560,6 @@
             return colors[stageIndex % colors.length];
         };
 
-        // Initialiseer met het programma van de eerste dag
         const init = () => {
             loadEvents();
         };
@@ -557,7 +568,6 @@
         
         let isMobileLayout = window.innerWidth <= 768;
 
-        // Luister naar de window resize event om de lay-out te updaten
         window.addEventListener('resize', () => {
             const newIsMobileLayout = window.innerWidth <= 768;
             if (newIsMobileLayout !== isMobileLayout) {
