@@ -308,10 +308,13 @@
             });
         };
 
-        // Functie om de evenementengegevens op te halen van de opgegeven URL
+        // Functie om de evenementengegevens op te halen van de opgegeven URL en cache te omzeilen
         const loadEvents = async () => {
             try {
-                const response = await fetch(scheduleUrl);
+                // Voeg een cache-busting timestamp toe aan de URL om te voorkomen dat de browser de cache gebruikt
+                const cacheBuster = new Date().getTime();
+                const urlWithBuster = `${scheduleUrl}?t=${cacheBuster}`;
+                const response = await fetch(urlWithBuster);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
