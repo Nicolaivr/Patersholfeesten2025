@@ -35,10 +35,23 @@
             margin-bottom: 32px;
         }
 
+        /* Nieuwe container om het logo en de titel uit te lijnen */
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        /* Stijl voor het logo */
+        .patershol-logo {
+            height: 60px; /* Pas de grootte van het logo aan */
+            filter: invert(1); /* Inverteert de kleuren (wit wordt zwart, zwart wordt wit) */
+        }
+        
         h1 {
             font-size: 48px;
             font-weight: 800;
-            margin: 0 0 8px 0;
+            margin: 0; /* Verwijder de standaardmarge om de uitlijning te verbeteren */
         }
 
         .description {
@@ -186,6 +199,10 @@
                 font-size: 32px; /* Verkleinde font-size voor mobiel */
             }
             
+            .patershol-logo {
+                height: 40px; /* Pas de grootte van het logo aan voor mobiel */
+            }
+
             .schedule-grid-container {
                 display: flex;
                 flex-direction: column;
@@ -237,7 +254,10 @@
     <div class="container">
         <!-- Header and date navigation -->
         <header class="header">
-            <h1 class="text-white">Patersholfeesten 2025</h1>
+            <div class="header-title-container">
+                <img src="https://nicolaivr.github.io/Patersholfeesten2025/logoPatershol.svg" alt="Patershol Logo" class="patershol-logo">
+                <h1 class="text-white">Patersholfeesten 2025</h1>
+            </div>
             
             <div id="date-buttons" class="date-buttons">
                 <!-- Date buttons will be dynamically generated here -->
@@ -514,7 +534,7 @@
 
                 // Voeg de rode tijdslijn toe
                 const timeLine = document.createElement('div');
-                timeLine.className = 'current-time-line';
+                    timeLine.className = 'current-time-line';
                 scheduleContainer.appendChild(timeLine);
             }
             
@@ -539,10 +559,6 @@
 
         // Luister naar de window resize event om de lay-out te updaten
         window.addEventListener('resize', () => {
-            // De browser kan een 'resize' event triggeren tijdens het scrollen op mobiel.
-            // Dit kan de pagina opnieuw laten renderen, waardoor deze naar boven springt.
-            // We controleren nu of de lay-out daadwerkelijk is gewijzigd
-            // van desktop naar mobiel of vice versa, voordat we de renderSchedule-functie aanroepen.
             const newIsMobileLayout = window.innerWidth <= 768;
             if (newIsMobileLayout !== isMobileLayout) {
                 isMobileLayout = newIsMobileLayout;
