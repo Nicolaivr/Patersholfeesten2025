@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Festival Line-up</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #f9f9f9;
+  }
+  .schedule-container {
+    display: flex;
+    overflow-x: auto;
+    padding: 20px;
+    gap: 10px;
+  }
+  .stage-column {
+    background: white;
+    border-radius: 8px;
+    flex: 0 0 250px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ddd;
+  }
+  .stage-header {
+    background: #222;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-weight: bold;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .event {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+    cursor: pointer;
+  }
+  .event:hover {
+    background: #f0f0f0;
+  }
+  .tooltip {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    margin-left: 10px;
+    background: #222;
+    color: white;
+    padding: 6px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .event:hover .tooltip {
+    display: block;
+  }
+  .time {
+    color: #555;
+    font-size: 0.9em;
+    margin-bottom: 4px;
+  }
+  .title {
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h1 style="text-align:center;margin:20px 0;">Festival Line-up</h1>
+<div id="schedule" class="schedule-container"></div>
+
+<script>
+fetch('events.json')
+  .then(response => response.json())
+  .then(data => {
+    // Group events by stage
+    const stages = [...new Set(data.map(e => e.stage))];
+    const container = document.getElementById('schedule');
+
+    stages.forEach(stage => {
+      const stageEvents = data
+        .filter(e => e.stage === stage)
+        .sort((a, b) => (a.start > b.start ? 1 : -1));
+
+      const col = document.createElement('div');
+      col.className = 'stage-column';
+
+      const header = document.createElement('div');
+      header.className = 'stage-header';
+      header.textContent = stage;
+      col.appendChild(header);
+
+      stageEvents.forEach(ev => {
+        const evDiv = document.createElement('div');
+        evDiv.className = 'event';
+
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'time';
+        timeDiv.textContent = `${ev.start} - ${ev.end}`;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'title';
+        titleDiv.textContent = ev.title;
+
+        evDiv.appendChild(timeDiv);
+        evDiv.appendChild(titleDiv);
+
+        if (ev.extra_info) {
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip';
+          tooltip.textContent = ev.extra_info;
+          evDiv.appendChild(tooltip);
+        }
+
+        col.appendChild(evDiv);
+      });
+
+      container.appendChild(col);
+    });
+  });
+</script>
+
+</body>
+</html>
