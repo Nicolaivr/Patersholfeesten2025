@@ -119,8 +119,7 @@
         
         .stage-line {
             border-left: 1px solid var(--border-color);
-            /* Zorgt ervoor dat de lijn de hele hoogte vult */
-            grid-row: 1 / span 97;
+            grid-row: 1 / span 97; /* Zorgt ervoor dat de lijn de hele hoogte vult */
         }
 
         .hour-line {
@@ -188,8 +187,9 @@
                 flex-direction: column;
                 gap: 24px;
             }
-            .stage-labels {
-                display: none; /* Hide stage labels on mobile */
+            
+            .stage-labels, .schedule-container {
+                display: none; /* Desktop grid verbergen op mobiel */
             }
 
             .mobile-stage-header {
@@ -200,57 +200,17 @@
                 margin-bottom: 8px;
             }
 
-            .mobile-stage-container {
-                position: relative;
-                /* Nieuwe mobiele grid-indeling, 15 minuten per rij */
-                display: grid;
-                grid-template-columns: 80px 1fr;
-                grid-auto-rows: 24px; /* 15 minuten per rij */
+            .mobile-events-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
             }
 
-            .mobile-stage-container .event-card {
+            .mobile-events-list .event-card {
                 position: relative;
-                grid-column: 2; /* Plaats de kaart in de tweede kolom */
-                margin: 4px;
                 width: auto;
                 height: auto;
-            }
-
-            .mobile-stage-container .hour-line {
-                width: auto;
-                height: 1px;
-                background-color: var(--border-color);
-                grid-column: 2; /* Lijn in de evenementenkolom */
-                align-self: end;
-                position: relative;
-                top: auto;
-                left: auto;
-                z-index: 5;
-            }
-            
-            .mobile-time-col {
-                grid-column: 1; /* Tijdlabel in de eerste kolom */
-                text-align: right;
-                padding-right: 8px;
-                position: relative;
-                top: auto;
-                font-size: 12px;
-                color: #999;
-                padding-top: 4px;
-                z-index: 10;
-                /* Zorgt ervoor dat het tijdlabel over 4 rijen (1 uur) wordt uitgerekt */
-                align-self: start;
-            }
-            
-            /* De rode tijdslijn op mobiel */
-            .mobile-stage-container .current-time-line {
-                position: absolute;
-                height: 2px;
-                background-color: var(--highlight-color);
-                width: calc(100% - 80px); /* Lijn vult de breedte van de evenementenkolom */
-                left: 80px; /* Begint na de tijdkolom */
-                z-index: 30;
-                top: 0; /* Wordt dynamisch ingesteld door JS */
+                margin: 0;
             }
         }
     </style>
@@ -290,13 +250,13 @@
         let stages = [];
         let intervalId = null;
 
-        // Function to convert time string (HH:MM) to minutes from midnight
+        // Functie om tijdstring (HH:MM) om te zetten in minuten vanaf middernacht
         const timeToMinutes = (time) => {
             const [hours, minutes] = time.split(':').map(Number);
             return hours * 60 + minutes;
         };
 
-        // Function to fetch the events data from the specified URL
+        // Functie om de evenementengegevens op te halen van de opgegeven URL
         const loadEvents = async () => {
             try {
                 const response = await fetch(scheduleUrl);
@@ -307,7 +267,7 @@
                 
                 if (Array.isArray(data)) {
                     eventsData = data;
-                    // Dynamically get unique stages from the data
+                    // Dynamisch de unieke podia ophalen uit de data
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
                     
                     renderSchedule(currentDay);
@@ -322,7 +282,7 @@
             }
         };
 
-        // Function to update the current time line
+        // Functie om de rode tijdslijn bij te werken
         const updateTimeLine = () => {
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -334,7 +294,6 @@
             }
 
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            // Each grid row is 15 minutes, which is 24px. So 1 minute is 24/15 = 1.6px
             const topPosition = (currentMinutes / 15) * 24;
 
             timeLines.forEach(line => {
@@ -343,16 +302,16 @@
             });
         };
 
-        // Function to start the live time line update
+        // Functie om de live tijdslijn update te starten
         const startLiveTimeLine = () => {
             if (intervalId) {
                 clearInterval(intervalId);
             }
             updateTimeLine();
-            intervalId = setInterval(updateTimeLine, 60000); // Update every minute
+            intervalId = setInterval(updateTimeLine, 60000); // Update elke minuut
         };
 
-        // Function to render the schedule based on the selected date
+        // Functie om het programma te renderen op basis van de geselecteerde datum
         const renderSchedule = (date) => {
             loadingMessage.style.display = 'none';
             scheduleGridContainer.innerHTML = '';
@@ -361,53 +320,20 @@
             const filteredEvents = eventsData.filter(event => event.date === date);
 
             if (isMobile) {
-                // Mobile layout: one stage per block with a simple timeline grid
+                // Mobiele lay-out: een eenvoudige, gestapelde lijst van evenementen per podium
                 stages.forEach(stage => {
                     const stageDiv = document.createElement('div');
                     stageDiv.innerHTML = `<h2 class="mobile-stage-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</h2>`;
 
-                    const stageScheduleContainer = document.createElement('div');
-                    stageScheduleContainer.className = 'mobile-stage-container';
+                    const stageEventsList = document.createElement('div');
+                    stageEventsList.className = 'mobile-events-list';
 
-                    const stageEvents = filteredEvents.filter(event => event.stage === stage);
+                    const stageEvents = filteredEvents.filter(event => event.stage === stage)
+                                                    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
-                    // Determine the total number of grid rows needed for the day
-                    const maxEndTime = stageEvents.reduce((max, event) => Math.max(max, timeToMinutes(event.end)), 0);
-                    const lastRow = Math.ceil(maxEndTime / 15);
-                    const totalGridRows = lastRow > 0 ? lastRow + 4 : 4; // Add a buffer of 1 hour
-
-                    // Add hour labels and lines
-                    for (let row = 1; row <= totalGridRows; row++) {
-                        // Display an hour label every 4 rows (4 * 15 minutes = 1 hour)
-                        if ((row - 1) % 4 === 0) {
-                            const hour = (row - 1) / 4;
-                            const timeLabelDiv = document.createElement('div');
-                            timeLabelDiv.className = 'mobile-time-col';
-                            timeLabelDiv.style.gridRow = `${row} / span 4`;
-                            timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
-                            stageScheduleContainer.appendChild(timeLabelDiv);
-                        }
-                        
-                        // Add a horizontal line at the end of each hour
-                        const hourLine = document.createElement('div');
-                        hourLine.className = 'hour-line';
-                        hourLine.style.gridRow = `${row}`;
-                        stageScheduleContainer.appendChild(hourLine);
-                    }
-
-                    // Render events in the grid
                     stageEvents.forEach(event => {
-                        const startTimeMinutes = timeToMinutes(event.start);
-                        const endTimeMinutes = timeToMinutes(event.end);
-                        
-                        // Calculate grid row positions. Each row is 15 minutes.
-                        const startRow = Math.floor(startTimeMinutes / 15) + 1;
-                        const endRow = Math.ceil(endTimeMinutes / 15) + 1;
-                        const rowSpan = endRow - startRow;
-                        
                         const eventDiv = document.createElement('div');
                         eventDiv.className = 'event-card';
-                        eventDiv.style.gridRow = `${startRow} / span ${rowSpan}`;
                         eventDiv.style.backgroundColor = getEventColor(stage);
                         eventDiv.innerHTML = `
                             <div>
@@ -416,19 +342,15 @@
                                 ${event.extra_info ? `<div class="event-info">${event.extra_info}</div>` : ''}
                             </div>
                         `;
-                        stageScheduleContainer.appendChild(eventDiv);
+                        stageEventsList.appendChild(eventDiv);
                     });
                     
-                    // Add the live time line
-                    const timeLine = document.createElement('div');
-                    timeLine.className = 'current-time-line';
-                    stageScheduleContainer.appendChild(timeLine);
-
-                    stageDiv.appendChild(stageScheduleContainer);
+                    stageDiv.appendChild(stageEventsList);
                     scheduleGridContainer.appendChild(stageDiv);
                 });
+
             } else {
-                // Desktop layout: stages side-by-side in a grid
+                // Desktop lay-out: podia naast elkaar in een grid
                 const stageLabelsContainer = document.createElement('div');
                 stageLabelsContainer.id = 'stage-labels';
                 stageLabelsContainer.className = 'stage-labels';
@@ -448,9 +370,8 @@
                 scheduleContainer.style.setProperty('--stages', stages.length);
                 scheduleGridContainer.appendChild(scheduleContainer);
                 
-                // Add time labels and horizontal lines
+                // Voeg tijdlabels en horizontale lijnen toe
                 for (let hour = 0; hour < 25; hour++) {
-                    // Position is based on 15-minute intervals, so 4 intervals per hour
                     const topPosition = hour * 4 * 24;
                     
                     const hourLine = document.createElement('div');
@@ -465,7 +386,7 @@
                     scheduleContainer.appendChild(timeLabelDiv);
                 }
                 
-                // Add vertical lines
+                // Voeg verticale lijnen toe
                 for (let i = 1; i <= stages.length; i++) {
                     const stageGridLine = document.createElement('div');
                     stageGridLine.className = `stage-line`;
@@ -474,7 +395,7 @@
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
-                // Render events
+                // Render evenementen
                 filteredEvents.forEach(event => {
                     const startTimeMinutes = timeToMinutes(event.start);
                     const endTimeMinutes = timeToMinutes(event.end);
@@ -506,7 +427,7 @@
                     scheduleContainer.appendChild(eventDiv);
                 });
 
-                // Add the live time line
+                // Voeg de rode tijdslijn toe
                 const timeLine = document.createElement('div');
                 timeLine.className = 'current-time-line';
                 scheduleContainer.appendChild(timeLine);
@@ -515,7 +436,7 @@
             updateTimeLine();
         };
 
-        // Function to get the background color for a stage
+        // Functie om de achtergrondkleur van een podium te krijgen
         const getEventColor = (stage) => {
             switch(stage) {
                 case 'kaatsspelplein':
@@ -529,7 +450,7 @@
             }
         };
 
-        // Event listeners for date buttons
+        // Event listeners voor de datumknoppen
         dateButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const dayId = button.id;
@@ -554,12 +475,12 @@
             });
         });
         
-        // Listen for window resize events to update the layout
+        // Luister naar de window resize event om de lay-out te updaten
         window.addEventListener('resize', () => {
             renderSchedule(currentDay);
         });
 
-        // Initialize with the first day's schedule
+        // Initialiseer met het programma van de eerste dag
         const init = () => {
             loadEvents();
         };
