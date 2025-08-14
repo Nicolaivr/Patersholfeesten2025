@@ -212,6 +212,19 @@
                 height: auto;
                 margin: 0;
             }
+
+            /* Stijlen en animatie voor het oplichtende evenement op mobiel */
+            @keyframes glowing-border {
+                0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3); }
+                50% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.5); }
+                100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3); }
+            }
+
+            .event-card.current {
+                animation: glowing-border 2s infinite ease-in-out;
+                border: 1px solid var(--highlight-color);
+                z-index: 25;
+            }
         }
     </style>
 </head>
@@ -223,10 +236,8 @@
             <h1 class="text-white">Patersholfeesten 2025</h1>
             <p class="description">Het programma per dag, geladen uit een JSON-bestand.</p>
 
-            <div class="date-buttons">
-                <button id="day-1" class="date-button active">Vrijdag 15 aug</button>
-                <button id="day-2" class="date-button">Zaterdag 16 aug</button>
-                <button id="day-3" class="date-button">Zondag 17 aug</button>
+            <div id="date-buttons" class="date-buttons">
+                <!-- Date buttons will be dynamically generated here -->
             </div>
         </header>
 
@@ -242,18 +253,56 @@
     <script>
         const scheduleGridContainer = document.getElementById('schedule-grid-container');
         const loadingMessage = document.getElementById('loading-message');
-        const dateButtons = document.querySelectorAll('.date-button');
+        const dateButtonsContainer = document.getElementById('date-buttons');
         const scheduleUrl = 'https://nicolaivr.github.io/Patersholfeesten2025/events.json';
 
         let eventsData = [];
-        let currentDay = '2025-08-15';
+        let currentDay = null; // Start with no selected day
         let stages = [];
         let intervalId = null;
+
+        const weekDays = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
+        const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
         // Functie om tijdstring (HH:MM) om te zetten in minuten vanaf middernacht
         const timeToMinutes = (time) => {
             const [hours, minutes] = time.split(':').map(Number);
             return hours * 60 + minutes;
+        };
+        
+        // Functie om een datumstring te formatteren naar "Dag DD Mnd"
+        const formatDate = (dateString) => {
+            const date = new Date(dateString);
+            const dayOfWeek = weekDays[date.getUTCDay()];
+            const dayOfMonth = date.getUTCDate();
+            const month = months[date.getUTCMonth()];
+            return `${dayOfWeek} ${dayOfMonth} ${month}`;
+        };
+
+        // Functie om de datumknoppen dynamisch te renderen
+        const renderDateButtons = (dates) => {
+            dateButtonsContainer.innerHTML = ''; // Clear existing buttons
+            dates.forEach((dateString, index) => {
+                const button = document.createElement('button');
+                button.id = `day-${index + 1}`;
+                button.className = 'date-button';
+                button.textContent = formatDate(dateString);
+                button.dataset.date = dateString; // Sla de volledige datum op in een data-attribuut
+
+                if (index === 0) {
+                    button.classList.add('active');
+                    currentDay = dateString; // Stel de eerste dag in als de huidige dag
+                }
+                
+                button.addEventListener('click', () => {
+                    currentDay = dateString;
+                    document.querySelectorAll('.date-button').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    renderSchedule(currentDay);
+                });
+
+                dateButtonsContainer.appendChild(button);
+            });
         };
 
         // Functie om de evenementengegevens op te halen van de opgegeven URL
@@ -267,9 +316,11 @@
                 
                 if (Array.isArray(data)) {
                     eventsData = data;
-                    // Dynamisch de unieke podia ophalen uit de data
+                    // Dynamisch de unieke podia en datums ophalen uit de data
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
+                    const uniqueDates = [...new Set(eventsData.map(event => event.date))].sort();
                     
+                    renderDateButtons(uniqueDates);
                     renderSchedule(currentDay);
                     startLiveTimeLine();
                 } else {
@@ -282,24 +333,48 @@
             }
         };
 
-        // Functie om de rode tijdslijn bij te werken
+        // Functie om de rode tijdslijn bij te werken en het huidige evenement te markeren
         const updateTimeLine = () => {
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const timeLines = document.querySelectorAll('.current-time-line');
+            const eventCards = document.querySelectorAll('.event-card');
             
-            if (currentDay !== today) {
-                timeLines.forEach(line => line.style.display = 'none');
-                return;
-            }
+            // Verwijder eerst alle 'current' klassen van evenementen
+            eventCards.forEach(card => card.classList.remove('current'));
+            
+            const isToday = currentDay === today;
 
+            // Bepaal de huidige tijd in minuten
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            const topPosition = (currentMinutes / 15) * 24;
+            
+            const isMobile = window.innerWidth <= 768;
 
-            timeLines.forEach(line => {
-                line.style.top = `${topPosition}px`;
-                line.style.display = 'block';
-            });
+            if (isToday) {
+                // Toon de tijdslijn op desktop
+                if (!isMobile) {
+                    const topPosition = (currentMinutes / 15) * 24;
+                    timeLines.forEach(line => {
+                        line.style.top = `${topPosition}px`;
+                        line.style.display = 'block';
+                    });
+                } else {
+                    timeLines.forEach(line => line.style.display = 'none');
+                }
+
+                // Bepaal welk evenement momenteel plaatsvindt en laat het oplichten (zowel desktop als mobiel)
+                eventCards.forEach(card => {
+                    const startMinutes = timeToMinutes(card.dataset.start);
+                    const endMinutes = timeToMinutes(card.dataset.end);
+                    
+                    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+                        card.classList.add('current');
+                    }
+                });
+            } else {
+                // Verberg de tijdslijn en verwijder de 'current' klasse als de geselecteerde dag niet vandaag is
+                timeLines.forEach(line => line.style.display = 'none');
+            }
         };
 
         // Functie om de live tijdslijn update te starten
@@ -329,12 +404,14 @@
                     stageEventsList.className = 'mobile-events-list';
 
                     const stageEvents = filteredEvents.filter(event => event.stage === stage)
-                                                    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+                                                    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.end));
                     
                     stageEvents.forEach(event => {
                         const eventDiv = document.createElement('div');
                         eventDiv.className = 'event-card';
-                        eventDiv.style.backgroundColor = getEventColor(stage);
+                        eventDiv.style.backgroundColor = getEventColor(event.stage);
+                        eventDiv.dataset.start = event.start; // Voeg data-attribuut toe
+                        eventDiv.dataset.end = event.end; // Voeg data-attribuut toe
                         eventDiv.innerHTML = `
                             <div>
                                 <div class="event-title">${event.title}</div>
@@ -416,6 +493,8 @@
                     eventDiv.style.gridRow = `${startRow} / span ${rowSpan}`;
                     eventDiv.style.gridColumn = stageIndex;
                     eventDiv.style.backgroundColor = getEventColor(event.stage);
+                    eventDiv.dataset.start = event.start; // Voeg data-attribuut toe
+                    eventDiv.dataset.end = event.end; // Voeg data-attribuut toe
                     
                     eventDiv.innerHTML = `
                         <div>
@@ -438,47 +517,10 @@
 
         // Functie om de achtergrondkleur van een podium te krijgen
         const getEventColor = (stage) => {
-            switch(stage) {
-                case 'kaatsspelplein':
-                    return '#333';
-                case 'viersprong':
-                    return '#555';
-                case 'algemeen':
-                    return '#777';
-                default:
-                    return '#999';
-            }
+            const colors = ['#333', '#555', '#777', '#999'];
+            const stageIndex = stages.indexOf(stage);
+            return colors[stageIndex % colors.length];
         };
-
-        // Event listeners voor de datumknoppen
-        dateButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const dayId = button.id;
-                let newDay;
-                switch (dayId) {
-                    case 'day-1':
-                        newDay = '2025-08-15';
-                        break;
-                    case 'day-2':
-                        newDay = '2025-08-16';
-                        break;
-                    case 'day-3':
-                        newDay = '2025-08-17';
-                        break;
-                    default:
-                        newDay = '2025-08-15';
-                }
-                currentDay = newDay;
-                dateButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                renderSchedule(currentDay);
-            });
-        });
-        
-        // Luister naar de window resize event om de lay-out te updaten
-        window.addEventListener('resize', () => {
-            renderSchedule(currentDay);
-        });
 
         // Initialiseer met het programma van de eerste dag
         const init = () => {
@@ -486,6 +528,11 @@
         };
 
         init();
+        
+        // Luister naar de window resize event om de lay-out te updaten
+        window.addEventListener('resize', () => {
+            renderSchedule(currentDay);
+        });
     </script>
 </body>
 </html>
