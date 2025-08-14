@@ -312,9 +312,9 @@
                 button.textContent = formatDate(dateString);
                 button.dataset.date = dateString; // Sla de volledige datum op in een data-attribuut
 
-                if (index === 0) {
+                // Bepaal of deze knop de actieve moet zijn
+                if (dateString === currentDay) {
                     button.classList.add('active');
-                    currentDay = dateString; // Stel de eerste dag in als de huidige dag
                 }
                 
                 button.addEventListener('click', () => {
@@ -344,6 +344,13 @@
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
                     const uniqueDates = [...new Set(eventsData.map(event => event.date))].sort();
                     
+                    // Bepaal de huidige dag
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayIndex = uniqueDates.indexOf(today);
+                    
+                    // Stel de huidige dag in, of de eerste dag als de huidige dag niet in de lijst staat
+                    currentDay = todayIndex !== -1 ? today : uniqueDates[0];
+
                     renderDateButtons(uniqueDates);
                     renderSchedule(currentDay);
                     startLiveTimeLine();
@@ -457,7 +464,7 @@
                 // Bepaal het startmoment van de kalender (een uur voor het eerste evenement)
                 const sortedEvents = filteredEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                 const firstEvent = sortedEvents[0];
-                const newStartMinutes = Math.max(0, timeToMinutes(firstEvent.start) - 60);
+                const newStartMinutes = firstEvent ? Math.max(0, timeToMinutes(firstEvent.start) - 60) : 0;
                 const startHour = Math.floor(newStartMinutes / 60);
                 
                 const stageLabelsContainer = document.createElement('div');
