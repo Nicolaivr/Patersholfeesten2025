@@ -182,6 +182,10 @@
         
         /* Mobile Layout */
         @media (max-width: 768px) {
+            h1 {
+                font-size: 32px; /* Verkleinde font-size voor mobiel */
+            }
+            
             .schedule-grid-container {
                 display: flex;
                 flex-direction: column;
@@ -234,8 +238,7 @@
         <!-- Header and date navigation -->
         <header class="header">
             <h1 class="text-white">Patersholfeesten 2025</h1>
-            <p class="description">Het programma per dag, geladen uit een JSON-bestand.</p>
-
+            
             <div id="date-buttons" class="date-buttons">
                 <!-- Date buttons will be dynamically generated here -->
             </div>
