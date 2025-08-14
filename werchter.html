@@ -6,38 +6,52 @@
     <title>Patersholfeesten 2025 Programma</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --background-color: #111;
+            --text-color: #fff;
+            --secondary-text-color: #ccc;
+            --border-color: #444;
+            --highlight-color: #EF4444;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #000;
-            color: #fff;
+            background-color: var(--background-color);
+            color: var(--text-color);
             margin: 0;
             padding: 0;
             line-height: 1.5;
             font-size: 16px;
         }
+
         .container {
             max-width: 1280px;
             margin: 0 auto;
             padding: 32px 16px;
         }
+
         .header {
             margin-bottom: 32px;
         }
+
         h1 {
             font-size: 48px;
             font-weight: 800;
             margin: 0 0 8px 0;
         }
+
         .description {
             font-size: 18px;
-            color: #ccc;
+            color: var(--secondary-text-color);
         }
+
         .date-buttons {
             display: flex;
             flex-wrap: wrap;
             gap: 16px;
             margin-top: 24px;
         }
+
         .date-button {
             padding: 12px 24px;
             border-radius: 8px;
@@ -48,42 +62,43 @@
             border: none;
             transition: background-color 0.3s;
         }
+
         .date-button.active {
-            background-color: #fff;
-            color: #000;
+            background-color: var(--text-color);
+            color: var(--background-color);
         }
+
         .date-button:not(.active) {
             background-color: #333;
-            color: #fff;
+            color: var(--text-color);
         }
+
         .date-button:not(.active):hover {
             background-color: #555;
         }
 
+        /* Desktop Layout */
         .schedule-grid-container {
-            overflow-x: auto;
-            position: relative; /* Belangrijk voor de rode lijn */
+            position: relative;
         }
-        .schedule-grid-wrapper {
-            display: flex;
-            flex-direction: column;
-            min-width: 700px;
-        }
+        
         .stage-labels {
             display: grid;
             font-weight: 700;
-            color: #ccc;
-            border-bottom: 1px solid #555;
+            color: var(--secondary-text-color);
+            border-bottom: 1px solid var(--border-color);
             position: sticky;
             top: 0;
-            background-color: #000;
+            background-color: var(--background-color);
             z-index: 20;
         }
+        
         .stage-labels > div {
             padding: 16px;
         }
+        
         .stage-labels .time-col {
-            border-right: 1px solid #555;
+            border-right: 1px solid var(--border-color);
         }
 
         .schedule-container {
@@ -91,17 +106,30 @@
             grid-auto-rows: minmax(24px, auto);
             position: relative;
         }
+
         .time-label {
             grid-column: 1;
             position: relative;
             padding-top: 4px;
             font-size: 12px;
             color: #999;
-            border-right: 1px solid #555;
+            border-right: 1px solid var(--border-color);
+            z-index: 10;
         }
+
         .stage-line {
-            border-left: 1px solid #555;
+            border-left: 1px solid var(--border-color);
         }
+
+        .hour-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background-color: var(--border-color);
+            left: 0;
+            z-index: 5;
+        }
+
         .event-card {
             margin: 4px;
             padding: 8px;
@@ -113,36 +141,92 @@
             flex-direction: column;
             justify-content: space-between;
         }
+        
         .event-card:hover {
             transform: scale(1.03);
         }
+
         .event-title {
-            color: #fff;
+            color: var(--text-color);
             font-size: 14px;
             font-weight: 700;
         }
+
         .event-time {
             font-size: 10px;
             text-transform: uppercase;
-            color: #ccc;
+            color: var(--secondary-text-color);
         }
+
         .event-info {
             font-size: 9px;
             color: #bbb;
             margin-top: 4px;
         }
+
         .loading-text {
-            color: #fff;
+            color: var(--text-color);
             font-style: italic;
         }
-        
+
         /* De rode lijn die de huidige tijd aangeeft */
         .current-time-line {
             position: absolute;
             height: 2px;
-            background-color: #EF4444; /* Rode kleur */
+            background-color: var(--highlight-color);
             width: 100%;
-            z-index: 10;
+            left: 0;
+            z-index: 30;
+        }
+        
+        /* Mobile Layout */
+        @media (max-width: 768px) {
+            .schedule-grid-container {
+                display: flex;
+                flex-direction: column;
+                gap: 24px;
+            }
+            .stage-labels, .schedule-container {
+                display: block; /* Disable grid for mobile */
+            }
+
+            .mobile-stage-header {
+                font-size: 24px;
+                font-weight: 700;
+                padding: 16px 0 8px 0;
+                border-bottom: 1px solid var(--border-color);
+                margin-bottom: 8px;
+            }
+
+            .mobile-stage-container {
+                position: relative;
+            }
+
+            .mobile-stage-container .event-card {
+                position: absolute;
+                width: calc(100% - 16px); /* Full width with padding */
+            }
+
+            .mobile-stage-container .hour-line {
+                width: calc(100% - 80px); /* Adjust for time column */
+                left: 80px;
+            }
+            
+            .mobile-stage-container .current-time-line {
+                width: calc(100% - 80px);
+                left: 80px;
+            }
+
+            .mobile-time-col {
+                width: 80px;
+                position: relative;
+                float: left; /* Keep time labels on the left */
+                font-size: 12px;
+                color: #999;
+                padding-top: 4px;
+                text-align: right;
+                padding-right: 8px;
+            }
         }
     </style>
 </head>
@@ -162,31 +246,24 @@
         </header>
 
         <!-- Schedule Container -->
-        <div class="schedule-grid-container">
-            <div class="schedule-grid-wrapper">
-                <!-- Stage labels - Worden dynamisch gegenereerd -->
-                <div id="stage-labels" class="stage-labels">
-                    <div class="time-col">Tijd</div>
-                </div>
-
-                <!-- Main schedule grid - Wordt dynamisch gegenereerd -->
-                <div id="schedule-container" class="schedule-container">
-                    <div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; height: 192px; color: #ccc;">Laden van het programma...</div>
-                </div>
-            </div>
+        <div id="schedule-grid-container" class="schedule-grid-container">
+            <!-- Loading message -->
+            <div id="loading-message" style="display: flex; align-items: center; justify-content: center; height: 192px; color: #ccc;">Laden van het programma...</div>
+            
+            <!-- Schedule content will be dynamically generated here -->
         </div>
     </div>
 
     <script>
-        const stageLabelsContainer = document.getElementById('stage-labels');
-        const scheduleContainer = document.getElementById('schedule-container');
+        const scheduleGridContainer = document.getElementById('schedule-grid-container');
+        const loadingMessage = document.getElementById('loading-message');
         const dateButtons = document.querySelectorAll('.date-button');
         const scheduleUrl = 'https://nicolaivr.github.io/Patersholfeesten2025/events.json';
 
         let eventsData = [];
         let currentDay = '2025-08-15';
         let stages = [];
-        let timeLine = null;
+        let intervalId = null;
 
         // Function to convert time string to minutes from start of day
         const timeToMinutes = (time) => {
@@ -209,14 +286,14 @@
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
                     
                     renderSchedule(currentDay);
-                    // Start de rode tijdslijn zodra de data geladen is
                     startLiveTimeLine();
                 } else {
                     throw new Error('Ongeldig dataformaat: De respons is geen array.');
                 }
             } catch (error) {
                 console.error("Could not fetch or parse events data:", error);
-                scheduleContainer.innerHTML = '<div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; height: 192px; color: #EF4444;">Fout bij het laden van de evenementen. Controleer de data of probeer het later opnieuw.</div>';
+                loadingMessage.innerHTML = 'Fout bij het laden van de evenementen. Controleer de data of probeer het later opnieuw.';
+                loadingMessage.style.color = '#EF4444';
             }
         };
 
@@ -224,113 +301,192 @@
         const updateTimeLine = () => {
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const timeLines = document.querySelectorAll('.current-time-line');
             
-            // Alleen de tijdslijn tonen als het de huidige dag is
-            if (currentDay === today) {
-                const currentMinutes = now.getHours() * 60 + now.getMinutes();
-                const topPosition = (currentMinutes / 15) * 24; // 24px per 15 minuten
-                
-                if (!timeLine) {
-                    timeLine = document.createElement('div');
-                    timeLine.className = 'current-time-line';
-                    scheduleContainer.appendChild(timeLine);
-                }
-                timeLine.style.top = `${topPosition}px`;
-            } else if (timeLine) {
-                // Verberg de tijdslijn als het niet de huidige dag is
-                timeLine.style.display = 'none';
+            // Verberg alle lijnen als het niet de huidige dag is
+            if (currentDay !== today) {
+                timeLines.forEach(line => line.style.display = 'none');
+                return;
             }
+
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const topPosition = (currentMinutes / 15) * 24; // 24px per 15 minuten
+
+            timeLines.forEach(line => {
+                line.style.top = `${topPosition}px`;
+                line.style.display = 'block'; // Zorg ervoor dat de lijnen zichtbaar zijn op de juiste dag
+            });
         };
 
         // Functie om de live tijdslijn te starten
         const startLiveTimeLine = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
             updateTimeLine();
-            setInterval(updateTimeLine, 60000); // Update elke minuut
+            intervalId = setInterval(updateTimeLine, 60000); // Update elke minuut
         };
 
         // Functie om de dynamische grid structuur te renderen
-        const renderGridStructure = () => {
-            // Wis bestaande labels
-            stageLabelsContainer.innerHTML = '<div class="time-col">Tijd</div>';
-
-            // Dynamische grid-instellingen voor de labels en het rooster
-            const gridTemplate = `80px repeat(${stages.length}, minmax(0, 1fr))`;
-            stageLabelsContainer.style.gridTemplateColumns = gridTemplate;
-            scheduleContainer.style.gridTemplateColumns = gridTemplate;
-
-            // Voeg dynamisch podialabels toe
-            stages.forEach(stage => {
-                const stageLabelDiv = document.createElement('div');
-                stageLabelDiv.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
-                stageLabelsContainer.appendChild(stageLabelDiv);
-            });
-
-            // Voeg tijdlabels en verticale lijnen toe
-            scheduleContainer.innerHTML = ''; // Wis de 'Laden...' tekst
-            for (let hour = 0; hour < 25; hour++) {
-                const timeLabelDiv = document.createElement('div');
-                timeLabelDiv.className = `time-label`;
-                timeLabelDiv.style.gridRowStart = hour * 4 + 1;
-                timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
-                scheduleContainer.appendChild(timeLabelDiv);
-            }
-            
-            for (let i = 1; i <= stages.length; i++) {
-                const stageGridLine = document.createElement('div');
-                stageGridLine.className = `stage-line`;
-                stageGridLine.style.gridColumn = i + 1;
-                stageGridLine.style.gridRow = `1 / 97`;
-                scheduleContainer.appendChild(stageGridLine);
-            }
-        };
-        
-        // Function to render the schedule for a given date
         const renderSchedule = (date) => {
-            renderGridStructure();
+            loadingMessage.style.display = 'none';
+            scheduleGridContainer.innerHTML = '';
             
+            const isMobile = window.innerWidth <= 768;
             const filteredEvents = eventsData.filter(event => event.date === date);
 
-            filteredEvents.forEach(event => {
-                const startTimeMinutes = timeToMinutes(event.start);
-                const endTimeMinutes = timeToMinutes(event.end);
+            if (isMobile) {
+                // Mobile layout: stages onder elkaar
+                stages.forEach(stage => {
+                    const stageDiv = document.createElement('div');
+                    stageDiv.className = 'mobile-stage-container';
+                    stageDiv.innerHTML = `<h2 class="mobile-stage-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</h2>`;
+
+                    const stageEvents = filteredEvents.filter(event => event.stage === stage);
+                    
+                    // Voeg tijdlijnen en events toe
+                    for (let hour = 0; hour < 25; hour++) {
+                        const topPosition = hour * 4 * 24; // 4 rows * 24px per row
+                        const hourLine = document.createElement('div');
+                        hourLine.className = 'hour-line';
+                        hourLine.style.top = `${topPosition}px`;
+                        stageDiv.appendChild(hourLine);
+
+                        const timeLabelDiv = document.createElement('div');
+                        timeLabelDiv.className = `mobile-time-col`;
+                        timeLabelDiv.style.top = `${topPosition}px`;
+                        timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
+                        stageDiv.appendChild(timeLabelDiv);
+                    }
+                    
+                    // Render events for this stage
+                    stageEvents.forEach(event => {
+                        const startTimeMinutes = timeToMinutes(event.start);
+                        const endTimeMinutes = timeToMinutes(event.end);
+                        
+                        const startRow = Math.floor(startTimeMinutes / 15) + 1;
+                        let endRow = Math.ceil(endTimeMinutes / 15) + 1;
+                        let rowSpan = endRow - startRow;
+                        
+                        if (rowSpan <= 0) {
+                            rowSpan = 4;
+                            endRow = startRow + rowSpan;
+                        }
+
+                        const eventDiv = document.createElement('div');
+                        eventDiv.className = 'event-card';
+                        eventDiv.style.top = `${(startRow - 1) * 24}px`;
+                        eventDiv.style.height = `${rowSpan * 24 - 8}px`; // Subtract margin
+                        eventDiv.style.left = '80px';
+                        eventDiv.style.backgroundColor = getEventColor(stage);
+                        eventDiv.innerHTML = `
+                            <div>
+                                <div class="event-title">${event.title}</div>
+                                <div class="event-time">${event.start} - ${event.end}</div>
+                                ${event.extra_info ? `<div class="event-info">${event.extra_info}</div>` : ''}
+                            </div>
+                        `;
+                        stageDiv.appendChild(eventDiv);
+                    });
+                    
+                    // Voeg een rode tijdslijn toe voor de mobiele weergave
+                    const timeLine = document.createElement('div');
+                    timeLine.className = 'current-time-line';
+                    stageDiv.appendChild(timeLine);
+
+                    scheduleGridContainer.appendChild(stageDiv);
+                });
+            } else {
+                // Desktop layout: stages naast elkaar
+                const stageLabelsContainer = document.createElement('div');
+                stageLabelsContainer.id = 'stage-labels';
+                stageLabelsContainer.className = 'stage-labels';
+                const gridTemplate = `80px repeat(${stages.length}, minmax(0, 1fr))`;
+                stageLabelsContainer.style.gridTemplateColumns = gridTemplate;
+                stageLabelsContainer.innerHTML = '<div class="time-col">Tijd</div>';
+                stages.forEach(stage => {
+                    const stageLabelDiv = document.createElement('div');
+                    stageLabelDiv.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
+                    stageLabelsContainer.appendChild(stageLabelDiv);
+                });
+                scheduleGridContainer.appendChild(stageLabelsContainer);
                 
-                const startRow = Math.floor(startTimeMinutes / 15) + 1;
-                let endRow = Math.ceil(endTimeMinutes / 15) + 1;
-                let rowSpan = endRow - startRow;
+                const scheduleContainer = document.createElement('div');
+                scheduleContainer.id = 'schedule-container';
+                scheduleContainer.className = 'schedule-container';
+                scheduleContainer.style.gridTemplateColumns = gridTemplate;
+                scheduleGridContainer.appendChild(scheduleContainer);
                 
-                // Als starttijd en eindtijd hetzelfde zijn,
-                // geef het evenement een duur van 1 uur (4 rijen).
-                if (rowSpan <= 0) {
-                    rowSpan = 4;
-                    endRow = startRow + rowSpan;
+                // Voeg tijdlabels en horizontale lijnen toe
+                for (let hour = 0; hour < 25; hour++) {
+                    const topPosition = hour * 4 * 24;
+                    
+                    const hourLine = document.createElement('div');
+                    hourLine.className = 'hour-line';
+                    hourLine.style.top = `${topPosition}px`;
+                    scheduleContainer.appendChild(hourLine);
+                    
+                    const timeLabelDiv = document.createElement('div');
+                    timeLabelDiv.className = `time-label`;
+                    timeLabelDiv.style.gridRowStart = hour * 4 + 1;
+                    timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
+                    scheduleContainer.appendChild(timeLabelDiv);
                 }
                 
-                const stageIndex = stages.indexOf(event.stage) + 2;
-
-                const eventDiv = document.createElement('div');
-                eventDiv.className = `event-card`;
-                eventDiv.style.gridRow = `${startRow} / span ${rowSpan}`;
-                eventDiv.style.gridColumn = stageIndex;
-                eventDiv.style.backgroundColor = getEventColor(event.stage);
-
-                eventDiv.innerHTML = `
-                    <div>
-                        <div class="event-title">${event.title}</div>
-                        <div class="event-time">${event.start} - ${event.end}</div>
-                        ${event.extra_info ? `<div class="event-info">${event.extra_info}</div>` : ''}
-                    </div>
-                `;
+                // Voeg verticale lijnen toe
+                for (let i = 1; i <= stages.length; i++) {
+                    const stageGridLine = document.createElement('div');
+                    stageGridLine.className = `stage-line`;
+                    stageGridLine.style.gridColumn = i + 1;
+                    stageGridLine.style.gridRow = `1 / 97`;
+                    scheduleContainer.appendChild(stageGridLine);
+                }
                 
-                scheduleContainer.appendChild(eventDiv);
-            });
+                // Render events
+                filteredEvents.forEach(event => {
+                    const startTimeMinutes = timeToMinutes(event.start);
+                    const endTimeMinutes = timeToMinutes(event.end);
+                    
+                    const startRow = Math.floor(startTimeMinutes / 15) + 1;
+                    let endRow = Math.ceil(endTimeMinutes / 15) + 1;
+                    let rowSpan = endRow - startRow;
+                    
+                    if (rowSpan <= 0) {
+                        rowSpan = 4;
+                        endRow = startRow + rowSpan;
+                    }
+                    
+                    const stageIndex = stages.indexOf(event.stage) + 2;
+
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = `event-card`;
+                    eventDiv.style.gridRow = `${startRow} / span ${rowSpan}`;
+                    eventDiv.style.gridColumn = stageIndex;
+                    eventDiv.style.backgroundColor = getEventColor(event.stage);
+                    
+                    eventDiv.innerHTML = `
+                        <div>
+                            <div class="event-title">${event.title}</div>
+                            <div class="event-time">${event.start} - ${event.end}</div>
+                            ${event.extra_info ? `<div class="event-info">${event.extra_info}</div>` : ''}
+                        </div>
+                    `;
+                    scheduleContainer.appendChild(eventDiv);
+                });
+
+                // Voeg de rode tijdslijn toe voor de desktopweergave
+                const timeLine = document.createElement('div');
+                timeLine.className = 'current-time-line';
+                scheduleContainer.appendChild(timeLine);
+            }
             
-            updateTimeLine(); // Zorg ervoor dat de lijn ook bij het wisselen van dagen wordt bijgewerkt
+            updateTimeLine();
         };
 
         const getEventColor = (stage) => {
             switch(stage) {
                 case 'kaatsspelplein':
-                    return '#111';
+                    return '#333';
                 case 'viersprong':
                     return '#222';
                 case 'algemeen':
@@ -363,6 +519,11 @@
                 button.classList.add('active');
                 renderSchedule(currentDay);
             });
+        });
+        
+        // Luister naar de window resize event om de lay-out te updaten
+        window.addEventListener('resize', () => {
+            renderSchedule(currentDay);
         });
 
         // Initialize with the first day's schedule
