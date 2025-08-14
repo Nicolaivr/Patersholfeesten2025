@@ -344,19 +344,31 @@
 
                     const stageEvents = filteredEvents.filter(event => event.stage === stage);
                     
+                    // Bereken de totale hoogte van de container op basis van de laatste eindtijd
+                    const maxEndTime = stageEvents.reduce((max, event) => {
+                        const endTimeMinutes = timeToMinutes(event.end);
+                        return Math.max(max, endTimeMinutes);
+                    }, 0);
+                    const totalHeight = (Math.ceil(maxEndTime / 15) + 1) * 24;
+                    stageDiv.style.height = `${totalHeight}px`;
+
                     // Voeg tijdlijnen en events toe
                     for (let hour = 0; hour < 25; hour++) {
                         const topPosition = hour * 4 * 24; // 4 rows * 24px per row
-                        const hourLine = document.createElement('div');
-                        hourLine.className = 'hour-line';
-                        hourLine.style.top = `${topPosition}px`;
-                        stageDiv.appendChild(hourLine);
-
-                        const timeLabelDiv = document.createElement('div');
-                        timeLabelDiv.className = `mobile-time-col`;
-                        timeLabelDiv.style.top = `${topPosition}px`;
-                        timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
-                        stageDiv.appendChild(timeLabelDiv);
+                        
+                        // Zorg ervoor dat de horizontale lijn binnen de berekende hoogte van de container blijft
+                        if (topPosition < totalHeight) {
+                            const hourLine = document.createElement('div');
+                            hourLine.className = 'hour-line';
+                            hourLine.style.top = `${topPosition}px`;
+                            stageDiv.appendChild(hourLine);
+                            
+                            const timeLabelDiv = document.createElement('div');
+                            timeLabelDiv.className = `mobile-time-col`;
+                            timeLabelDiv.style.top = `${topPosition}px`;
+                            timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
+                            stageDiv.appendChild(timeLabelDiv);
+                        }
                     }
                     
                     // Render events for this stage
@@ -488,11 +500,11 @@
                 case 'kaatsspelplein':
                     return '#333';
                 case 'viersprong':
-                    return '#222';
-                case 'algemeen':
-                    return '#444';
-                default:
                     return '#555';
+                case 'algemeen':
+                    return '#777';
+                default:
+                    return '#999';
             }
         };
 
