@@ -203,6 +203,12 @@
                 height: 40px; /* Pas de grootte van het logo aan voor mobiel */
             }
 
+            .date-button {
+                width: 100%; /* Make buttons take full width */
+                text-align: center; /* Center the text */
+                box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            }
+
             .schedule-grid-container {
                 display: flex;
                 flex-direction: column;
@@ -347,6 +353,18 @@
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
                     const uniqueDates = [...new Set(eventsData.map(event => event.date))].sort();
                     
+                    // --- NEW CODE FOR DYNAMIC YEAR ---
+                    if (uniqueDates.length > 0) {
+                        const firstEventDate = new Date(uniqueDates[0]);
+                        const festivalYear = firstEventDate.getFullYear();
+
+                        // Update the main heading
+                        document.querySelector('h1.text-white').textContent = `Patersholfeesten ${festivalYear}`;
+                        // Update the document title
+                        document.title = `Patersholfeesten ${festivalYear} Programma`;
+                    }
+                    // --- END NEW CODE ---
+
                     // Bepaal de huidige dag
                     const now = virtueleDatumTijd ? virtueleDatumTijd : new Date();
                     const today = now.toISOString().split('T')[0];
@@ -458,7 +476,7 @@
                         // Case 1: A normal event that ends on the same day it starts.
                         if (isNormalEvent && currentMinutes >= endTimeMinutes) {
                             card.classList.add('passed');
-                        } 
+                        }    
                         // Case 2: An event with the same start/end time, treated as a 1-hour block.
                         else if (isSameTimeEvent && currentMinutes >= startTimeMinutes + 60) {
                             card.classList.add('passed');
@@ -481,7 +499,7 @@
                 if (!virtueleDatumTijd) {
                     updateTimeLine();
                 }
-            }, 60000); 
+            }, 60000);    
         };
 
         // Functie om het programma te renderen op basis van de geselecteerde datum
@@ -502,7 +520,7 @@
                     stageEventsList.className = 'mobile-events-list';
 
                     const stageEvents = filteredEvents.filter(event => event.stage === stage)
-                                                      .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+                                                    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
                     stageEvents.forEach(event => {
                         const eventDiv = document.createElement('div');
@@ -565,8 +583,6 @@
                     const relativeMinutes = (hour * 60) - newStartMinutes;
                     if (relativeMinutes < 0) continue; // Zorg ervoor dat we niet vóór het nieuwe startmoment beginnen
                     
-                    const topPosition = (relativeMinutes / 15) * 24;
-                    
                     const hourLine = document.createElement('div');
                     hourLine.className = 'hour-line';
                     hourLine.style.top = `${topPosition}px`;
@@ -585,7 +601,7 @@
                     stageGridLine.className = `stage-line`;
                     stageGridLine.style.gridColumn = i + 1;
                     // De hoogte van de lijn wordt bepaald door het aantal rijen
-                    stageGridLine.style.gridRow = `1 / ${totalRows + 1}`; 
+                    stageGridLine.style.gridRow = `1 / ${totalRows + 1}`;    
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
