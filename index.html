@@ -538,9 +538,22 @@
 
                 const sortedEvents = filteredEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                 const firstEvent = sortedEvents[0];
-                const newStartMinutes = firstEvent ? Math.max(0, timeToMinutes(firstEvent.start) - 60) : 0;
-                const startHour = Math.floor(newStartMinutes / 60);
+                let lastEventMinutes = 0;
                 
+                // Determine the end of the schedule grid based on the last event of the day
+                sortedEvents.forEach(event => {
+                    let endMinutes = timeToMinutes(event.end);
+                    if (endMinutes < timeToMinutes(event.start)) {
+                        endMinutes += 1440; // Add 24 hours for events that end the next day
+                    }
+                    if (endMinutes > lastEventMinutes) {
+                        lastEventMinutes = endMinutes;
+                    }
+                });
+
+                const firstEventMinutes = timeToMinutes(firstEvent.start);
+                const newStartMinutes = Math.max(0, firstEventMinutes - 60);
+
                 const stageLabelsContainer = document.createElement('div');
                 stageLabelsContainer.id = 'stage-labels';
                 stageLabelsContainer.className = 'stage-labels';
@@ -560,45 +573,57 @@
                 scheduleContainer.style.setProperty('--stages', stages.length);
                 scheduleGridContainer.appendChild(scheduleContainer);
                 
-                const totalMinutes = (24 * 60) - newStartMinutes;
-                const totalRows = Math.ceil(totalMinutes / 15);
+                let endHour = Math.ceil(lastEventMinutes / 60);
                 
-                for (let hour = startHour; hour < 25; hour++) {
+                // If an event ends after midnight but before 2:00 AM, extend the schedule to 2:00 AM
+                if (lastEventMinutes >= 1440 && lastEventMinutes <= (1440 + 120)) {
+                    endHour = 26;
+                } else if (lastEventMinutes > 1440 + 120) {
+                     endHour = Math.ceil((lastEventMinutes - 1440) / 60) + 24;
+                }
+
+                for (let hour = Math.floor(newStartMinutes / 60); hour <= endHour; hour++) {
+                    const displayHour = hour >= 24 ? hour - 24 : hour;
                     const relativeMinutes = (hour * 60) - newStartMinutes;
                     if (relativeMinutes < 0) continue;
                     
                     const hourLine = document.createElement('div');
                     hourLine.className = 'hour-line';
-                    const topPosition = (relativeMinutes / 15) * 24; // FIX: `topPosition` defined here
+                    const topPosition = (relativeMinutes / 15) * 24;
                     hourLine.style.top = `${topPosition}px`;
                     scheduleContainer.appendChild(hourLine);
                     
                     const timeLabelDiv = document.createElement('div');
                     timeLabelDiv.className = `time-label`;
                     timeLabelDiv.style.gridRowStart = (relativeMinutes / 15) + 1;
-                    timeLabelDiv.textContent = `${String(hour).padStart(2, '0')}:00`;
+                    timeLabelDiv.textContent = `${String(displayHour).padStart(2, '0')}:00`;
                     scheduleContainer.appendChild(timeLabelDiv);
                 }
                 
+                const totalMinutes = lastEventMinutes - newStartMinutes;
+                const totalRows = Math.ceil(totalMinutes / 15);
                 for (let i = 1; i <= stages.length; i++) {
                     const stageGridLine = document.createElement('div');
                     stageGridLine.className = `stage-line`;
                     stageGridLine.style.gridColumn = i + 1;
-                    stageGridLine.style.gridRow = `1 / ${totalRows + 1}`;    
+                    stageGridLine.style.gridRow = `1 / ${totalRows + 1}`;
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
                 filteredEvents.forEach(event => {
                     const startTimeMinutes = timeToMinutes(event.start);
-                    const endTimeMinutes = timeToMinutes(event.end);
+                    let endTimeMinutes = timeToMinutes(event.end);
                     
+                    if (endTimeMinutes < startTimeMinutes) {
+                        endTimeMinutes += 1440; // Add 24 hours for overnight events
+                    }
+
                     const startRow = Math.floor((startTimeMinutes - newStartMinutes) / 15) + 1;
-                    let endRow = Math.ceil((endTimeMinutes - newStartMinutes) / 15) + 1;
+                    const endRow = Math.ceil((endTimeMinutes - newStartMinutes) / 15) + 1;
                     let rowSpan = endRow - startRow;
                     
                     if (rowSpan <= 0) {
                         rowSpan = 4;
-                        endRow = startRow + rowSpan;
                     }
                     
                     const stageIndex = stages.indexOf(event.stage) + 2;
