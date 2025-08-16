@@ -118,7 +118,6 @@
             grid-auto-rows: 24px;
             position: relative;
             grid-template-columns: 80px repeat(var(--stages), minmax(0, 1fr));
-            /* AANGEPAST: De linker grenslijn is hier verwijderd en verplaatst naar de time-label */
         }
 
         .time-label {
@@ -127,14 +126,14 @@
             padding-top: 4px;
             font-size: 12px;
             color: #999;
-            /* AANGEPAST: De rechter grenslijn is nu hier */
             border-right: 1px solid var(--border-color);
             z-index: 10;
         }
         
         .stage-line {
-            /* AANGEPAST: De border-left is hier verwijderd om overlapping te voorkomen */
             border-left: 1px solid var(--border-color);
+            /* AANGEPAST: Dit trekt de lijn 1px naar links om overlap te voorkomen */
+            margin-left: -1px;
         }
 
         .hour-line {
