@@ -257,7 +257,6 @@
 <body data-page-color="black">
 
     <div class="container">
-        <!-- Header and date navigation -->
         <header class="header">
             <div class="header-title-container">
                 <img src="https://nicolaivr.github.io/Patersholfeesten2025/logoPatershol.svg" alt="Patershol Logo" class="patershol-logo">
@@ -265,17 +264,13 @@
             </div>
             
             <div id="date-buttons" class="date-buttons">
-                <!-- Date buttons will be dynamically generated here -->
-            </div>
+                </div>
         </header>
 
-        <!-- Schedule Container -->
         <div id="schedule-grid-container" class="schedule-grid-container">
-            <!-- Loading message -->
             <div id="loading-message" style="display: flex; align-items: center; justify-content: center; height: 192px; color: #ccc;">Laden van het programma...</div>
             
-            <!-- Schedule content will be dynamically generated here -->
-        </div>
+            </div>
     </div>
 
     <script>
@@ -448,10 +443,13 @@
                         card.classList.add('current');
                     }
                     
-                    // Nieuwe logica om afgeronde evenementen donkerder te maken
-                    if (isMobile && eventDate === today && currentMinutes >= endTimeMinutes) {
+                    // --- START CORRECTION ---
+                    // Corrected logic for marking events as "passed" on mobile.
+                    // This now checks if the event ends on the same day it starts.
+                    if (isMobile && eventDate === today && startTimeMinutes < endTimeMinutes && currentMinutes >= endTimeMinutes) {
                         card.classList.add('passed');
                     }
+                    // --- END CORRECTION ---
                 });
             } else {
                 timeLines.forEach(line => line.style.display = 'none');
@@ -490,7 +488,7 @@
                     stageEventsList.className = 'mobile-events-list';
 
                     const stageEvents = filteredEvents.filter(event => event.stage === stage)
-                                                     .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+                                                      .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
                     stageEvents.forEach(event => {
                         const eventDiv = document.createElement('div');
