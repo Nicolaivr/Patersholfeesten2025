@@ -145,9 +145,7 @@
         }
         
         .event-card {
-            /* AANGEPAST: Reduced margin to create more space */
             margin: 2px;
-            /* AANGEPAST: Reduced padding to fit content better on smaller cards */
             padding: 4px;
             border-radius: 8px;
             font-weight: 600;
@@ -456,20 +454,30 @@
                 eventCards.forEach(card => {
                     const eventDate = card.dataset.date;
                     const startTimeMinutes = timeToMinutes(card.dataset.start);
-                    const endTimeMinutes = timeToMinutes(card.dataset.end);
+                    let endTimeMinutes = timeToMinutes(card.dataset.end);
                     
-                    if (currentMinutes >= startTimeMinutes && currentMinutes < endTimeMinutes) {
-                        card.classList.add('current');
+                    // AANGEPAST: Pas het end time in minuten aan voor evenementen die over middernacht gaan
+                    if (timeToMinutes(card.dataset.end) < timeToMinutes(card.dataset.start)) {
+                        endTimeMinutes += 1440;
                     }
                     
-                    if (isMobile && eventDate === today) {
-                        const isNormalEvent = startTimeMinutes < endTimeMinutes;
-                        const isSameTimeEvent = startTimeMinutes === endTimeMinutes;
+                    const eventStartDateTime = new Date(`${eventDate}T${card.dataset.start}:00`);
+                    let eventEndDateTime = new Date(`${eventDate}T${card.dataset.end}:00`);
 
-                        if (isNormalEvent && currentMinutes >= endTimeMinutes) {
+                    if (eventEndDateTime < eventStartDateTime) {
+                        eventEndDateTime.setDate(eventEndDateTime.getDate() + 1);
+                    }
+
+                    if (isMobile && eventDate === today) {
+                        const isNormalEvent = startTimeMinutes < timeToMinutes(card.dataset.end);
+                        const isSameTimeEvent = startTimeMinutes === timeToMinutes(card.dataset.end);
+                        
+                        // Check if the current time is between the event's start and end time (including overnight)
+                        if (now >= eventStartDateTime && now < eventEndDateTime) {
+                             card.classList.add('current');
+                        } else if (isNormalEvent && currentMinutes >= timeToMinutes(card.dataset.end)) {
                             card.classList.add('passed');
-                        }    
-                        else if (isSameTimeEvent && currentMinutes >= startTimeMinutes + 60) {
+                        } else if (isSameTimeEvent && currentMinutes >= startTimeMinutes + 60) {
                             card.classList.add('passed');
                         }
                     }
