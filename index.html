@@ -284,6 +284,9 @@
         let stages = [];
         let intervalId = null;
 
+        // Nieuwe virtuele datum-variabele
+        let virtueleDatumTijd = null;
+
         const weekDays = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
         const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
@@ -345,7 +348,8 @@
                     const uniqueDates = [...new Set(eventsData.map(event => event.date))].sort();
                     
                     // Bepaal de huidige dag
-                    const today = new Date().toISOString().split('T')[0];
+                    const now = virtueleDatumTijd ? virtueleDatumTijd : new Date();
+                    const today = now.toISOString().split('T')[0];
                     const todayIndex = uniqueDates.indexOf(today);
                     
                     // Stel de huidige dag in, of de eerste dag als de huidige dag niet in de lijst staat
@@ -364,10 +368,44 @@
             }
         };
 
+        /**
+         * Functie om de virtuele tijd in te stellen.
+         * @param {string} datetimeString - De gewenste datum en tijd in het formaat 'YYYY-MM-DD HH:mm:ss'.
+         * Voorbeeld: '2025-08-16 19:30:00'
+         */
+        function stelVirtueleTijdlijnTijdIn(datetimeString) {
+            const parsedDate = new Date(datetimeString);
+
+            if (isNaN(parsedDate.getTime())) {
+                console.error("Ongeldig datumformaat. Gebruik 'YYYY-MM-DD HH:mm:ss', bijvoorbeeld '2025-08-16 19:30:00'.");
+                return;
+            }
+
+            virtueleDatumTijd = parsedDate;
+            console.log(`De virtuele tijd is ingesteld op ${datetimeString}. De tijdlijn zal nu deze tijd gebruiken.`);
+            
+            // Zet de geselecteerde dag op basis van de virtuele datum
+            currentDay = virtueleDatumTijd.toISOString().split('T')[0];
+            
+            renderSchedule(currentDay);
+            // Je kunt handmatig een herhaalde update instellen als je een animatie wilt zien.
+            // Omdat de virtuele tijd statisch is, wordt de live tijdslijn niet automatisch bijgewerkt.
+        }
+
+        /**
+         * Reset de virtuele tijd en keert terug naar de echte systeemklok.
+         */
+        function resetVirtueleTijdlijnTijd() {
+            virtueleDatumTijd = null;
+            console.log("De virtuele tijd is gereset. De tijdlijn gebruikt nu de echte systeemklok.");
+            // Herlaad de pagina om zeker te zijn van een schone start.
+            window.location.reload();
+        }
+
         // Functie om de rode tijdslijn bij te werken en het huidige evenement te markeren
         const updateTimeLine = () => {
-            const now = new Date();
-            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const now = virtueleDatumTijd ? virtueleDatumTijd : new Date();
+            const today = now.toISOString().split('T')[0];
             const timeLines = document.querySelectorAll('.current-time-line');
             const eventCards = document.querySelectorAll('.event-card');
             
@@ -411,7 +449,12 @@
                 clearInterval(intervalId);
             }
             updateTimeLine();
-            intervalId = setInterval(updateTimeLine, 60000); // Update elke minuut
+            // Update elke minuut als we niet in virtuele tijd-modus zijn
+            intervalId = setInterval(() => {
+                if (!virtueleDatumTijd) {
+                    updateTimeLine();
+                }
+            }, 60000); 
         };
 
         // Functie om het programma te renderen op basis van de geselecteerde datum
@@ -432,7 +475,7 @@
                     stageEventsList.className = 'mobile-events-list';
 
                     const stageEvents = filteredEvents.filter(event => event.stage === stage)
-                                                    .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+                                                     .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
                     stageEvents.forEach(event => {
                         const eventDiv = document.createElement('div');
