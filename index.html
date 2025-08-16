@@ -118,6 +118,8 @@
             grid-auto-rows: 24px;
             position: relative;
             grid-template-columns: 80px repeat(var(--stages), minmax(0, 1fr));
+            /* NIEUW: De linker grenslijn wordt nu hier toegevoegd */
+            border-left: 1px solid var(--border-color);
         }
 
         .time-label {
@@ -126,12 +128,13 @@
             padding-top: 4px;
             font-size: 12px;
             color: #999;
+            /* AANGEPAST: De rechter grenslijn is verplaatst naar hier */
             border-right: 1px solid var(--border-color);
             z-index: 10;
         }
         
         .stage-line {
-            border-left: 1px solid var(--border-color);
+            /* AANGEPAST: De border-left is hier verwijderd om overlapping te voorkomen */
             /* De hoogte van de lijn wordt later dynamisch berekend */
         }
 
@@ -552,8 +555,10 @@
                 });
                 
                 // If there are no overnight events, set lastEventMinutes to the end of the last normal event
-                if (lastEventMinutes <= 1440) {
+                if (lastEventMinutes <= timeToMinutes(sortedEvents[sortedEvents.length - 1].start) && timeToMinutes(sortedEvents[sortedEvents.length - 1].end) > timeToMinutes(sortedEvents[sortedEvents.length - 1].start)) {
                     lastEventMinutes = timeToMinutes(sortedEvents[sortedEvents.length - 1].end);
+                } else if (lastEventMinutes <= timeToMinutes(sortedEvents[sortedEvents.length - 1].start) && timeToMinutes(sortedEvents[sortedEvents.length - 1].end) < timeToMinutes(sortedEvents[sortedEvents.length - 1].start)){
+                     lastEventMinutes += 1440
                 }
                 
                 const firstEventMinutes = timeToMinutes(firstEvent.start);
