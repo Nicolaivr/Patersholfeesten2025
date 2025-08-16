@@ -444,10 +444,19 @@
                     }
                     
                     // --- START CORRECTION ---
-                    // Corrected logic for marking events as "passed" on mobile.
-                    // This now checks if the event ends on the same day it starts.
-                    if (isMobile && eventDate === today && startTimeMinutes < endTimeMinutes && currentMinutes >= endTimeMinutes) {
-                        card.classList.add('passed');
+                    // Logic for marking events as "passed" on mobile.
+                    if (isMobile && eventDate === today) {
+                        const isNormalEvent = startTimeMinutes < endTimeMinutes;
+                        const isSameTimeEvent = startTimeMinutes === endTimeMinutes;
+
+                        // Case 1: A normal event that ends on the same day it starts.
+                        if (isNormalEvent && currentMinutes >= endTimeMinutes) {
+                            card.classList.add('passed');
+                        } 
+                        // Case 2: An event with the same start/end time, treated as a 1-hour block.
+                        else if (isSameTimeEvent && currentMinutes >= startTimeMinutes + 60) {
+                            card.classList.add('passed');
+                        }
                     }
                     // --- END CORRECTION ---
                 });
@@ -585,7 +594,7 @@
                     let rowSpan = endRow - startRow;
                     
                     if (rowSpan <= 0) {
-                        rowSpan = 4;
+                        rowSpan = 4; // This represents 4 * 15 minutes = 1 hour
                         endRow = startRow + rowSpan;
                     }
                     
