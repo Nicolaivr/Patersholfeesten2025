@@ -538,6 +538,8 @@
 
                 const sortedEvents = filteredEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                 const firstEvent = sortedEvents[0];
+                const lastEvent = sortedEvents[sortedEvents.length - 1];
+
                 let lastEventMinutes = 0;
                 
                 sortedEvents.forEach(event => {
@@ -551,12 +553,8 @@
                     }
                 });
                 
-                // If there are no overnight events, set lastEventMinutes to the end of the last normal event
-                if (lastEventMinutes <= timeToMinutes(sortedEvents[sortedEvents.length - 1].start) && timeToMinutes(sortedEvents[sortedEvents.length - 1].end) > timeToMinutes(sortedEvents[sortedEvents.length - 1].start)) {
-                    lastEventMinutes = timeToMinutes(sortedEvents[sortedEvents.length - 1].end);
-                } else if (lastEventMinutes <= timeToMinutes(sortedEvents[sortedEvents.length - 1].start) && timeToMinutes(sortedEvents[sortedEvents.length - 1].end) < timeToMinutes(sortedEvents[sortedEvents.length - 1].start)){
-                     lastEventMinutes += 1440
-                }
+                // Set the correct end time for the grid based on the last event
+                const lastEventEndMinutes = timeToMinutes(lastEvent.end) < timeToMinutes(lastEvent.start) ? timeToMinutes(lastEvent.end) + 1440 : timeToMinutes(lastEvent.end);
                 
                 const firstEventMinutes = timeToMinutes(firstEvent.start);
                 const newStartMinutes = Math.max(0, firstEventMinutes - 60);
@@ -580,7 +578,7 @@
                 scheduleContainer.style.setProperty('--stages', stages.length);
                 scheduleGridContainer.appendChild(scheduleContainer);
                 
-                const endHour = Math.ceil(lastEventMinutes / 60);
+                const endHour = Math.ceil(lastEventEndMinutes / 60);
 
                 for (let hour = Math.floor(newStartMinutes / 60); hour <= endHour; hour++) {
                     const displayHour = hour >= 24 ? hour - 24 : hour;
@@ -600,14 +598,13 @@
                     scheduleContainer.appendChild(timeLabelDiv);
                 }
                 
-                const totalMinutes = lastEventMinutes - newStartMinutes;
-                const totalRows = Math.ceil(totalMinutes / 15) + 1; // +1 to ensure it reaches the last line
-                
+                const finalEndRow = Math.ceil((lastEventEndMinutes - newStartMinutes) / 15) + 1;
+
                 for (let i = 1; i <= stages.length; i++) {
                     const stageGridLine = document.createElement('div');
                     stageGridLine.className = `stage-line`;
                     stageGridLine.style.gridColumn = i + 1;
-                    stageGridLine.style.gridRow = `1 / span ${totalRows}`;
+                    stageGridLine.style.gridRow = `1 / span ${finalEndRow}`;
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
