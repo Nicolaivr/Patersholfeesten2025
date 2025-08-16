@@ -233,7 +233,12 @@
                 height: auto;
                 margin: 0;
             }
-
+            
+            /* NIEUWE STIJL VOOR AFGELOPEN EVENEMENTEN OP MOBIEL */
+            .mobile-events-list .event-card.passed {
+                filter: brightness(0.6); /* Maak de kaart donkerder */
+            }
+            
             /* Stijlen en animatie voor het oplichtende evenement op mobiel */
             @keyframes glowing-border {
                 0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3); }
@@ -409,7 +414,11 @@
             const timeLines = document.querySelectorAll('.current-time-line');
             const eventCards = document.querySelectorAll('.event-card');
             
-            eventCards.forEach(card => card.classList.remove('current'));
+            // Verwijder 'current' en 'passed' classes van alle kaarten
+            eventCards.forEach(card => {
+                card.classList.remove('current');
+                card.classList.remove('passed');
+            });
             
             const isToday = currentDay === today;
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -431,11 +440,17 @@
                 }
 
                 eventCards.forEach(card => {
-                    const startMinutes = timeToMinutes(card.dataset.start);
-                    const endMinutes = timeToMinutes(card.dataset.end);
+                    const eventDate = card.dataset.date;
+                    const startTimeMinutes = timeToMinutes(card.dataset.start);
+                    const endTimeMinutes = timeToMinutes(card.dataset.end);
                     
-                    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+                    if (currentMinutes >= startTimeMinutes && currentMinutes < endTimeMinutes) {
                         card.classList.add('current');
+                    }
+                    
+                    // Nieuwe logica om afgeronde evenementen donkerder te maken
+                    if (isMobile && eventDate === today && currentMinutes >= endTimeMinutes) {
+                        card.classList.add('passed');
                     }
                 });
             } else {
@@ -483,6 +498,7 @@
                         eventDiv.style.backgroundColor = getEventColor(event.stage);
                         eventDiv.dataset.start = event.start;
                         eventDiv.dataset.end = event.end;
+                        eventDiv.dataset.date = event.date; // BELANGRIJKE TOEVOEGING: sla de datum op
                         eventDiv.innerHTML = `
                             <div>
                                 <div class="event-title">${event.title}</div>
@@ -584,6 +600,7 @@
                     eventDiv.style.backgroundColor = getEventColor(event.stage);
                     eventDiv.dataset.start = event.start;
                     eventDiv.dataset.end = event.end;
+                    eventDiv.dataset.date = event.date; // BELANGRIJKE TOEVOEGING: sla de datum op
                     
                     eventDiv.innerHTML = `
                         <div>
