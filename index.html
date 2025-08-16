@@ -36,23 +36,21 @@
             margin-bottom: 32px;
         }
 
-        /* Nieuwe container om het logo en de titel uit te lijnen */
         .header-title-container {
             display: flex;
             align-items: center;
             gap: 16px;
         }
         
-        /* Stijl voor het logo */
         .patershol-logo {
-            height: 60px; /* Pas de grootte van het logo aan */
-            filter: invert(1); /* Inverteert de kleuren (wit wordt zwart, zwart wordt wit) */
+            height: 60px;
+            filter: invert(1);
         }
         
         h1 {
             font-size: 48px;
             font-weight: 800;
-            margin: 0; /* Verwijder de standaardmarge om de uitlijning te verbeteren */
+            margin: 0;
         }
 
         .description {
@@ -112,10 +110,26 @@
         .stage-labels > div {
             padding: 16px;
         }
+
+        .stage-name-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stage-map-link {
+            font-size: 12px;
+            color: var(--secondary-text-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .stage-map-link:hover {
+            color: var(--text-color);
+        }
         
         .schedule-container {
             display: grid;
-            /* 15 minuten per rij = 24px */
             grid-auto-rows: 24px;
             position: relative;
             grid-template-columns: 80px repeat(var(--stages), minmax(0, 1fr));
@@ -197,17 +211,17 @@
         /* Mobile Layout */
         @media (max-width: 768px) {
             h1 {
-                font-size: 32px; /* Verkleinde font-size voor mobiel */
+                font-size: 32px;
             }
             
             .patershol-logo {
-                height: 40px; /* Pas de grootte van het logo aan voor mobiel */
+                height: 40px;
             }
 
             .date-button {
-                width: 100%; /* Make buttons take full width */
-                text-align: center; /* Center the text */
-                box-sizing: border-box; /* Include padding and border in the element's total width and height */
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
             }
 
             .schedule-grid-container {
@@ -217,7 +231,7 @@
             }
             
             .stage-labels, .schedule-container {
-                display: none; /* Desktop grid verbergen op mobiel */
+                display: none;
             }
 
             .mobile-stage-header {
@@ -226,6 +240,9 @@
                 padding: 16px 0 8px 0;
                 border-bottom: 1px solid var(--border-color);
                 margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
 
             .mobile-events-list {
@@ -241,12 +258,10 @@
                 margin: 0;
             }
             
-            /* NIEUWE STIJL VOOR AFGELOPEN EVENEMENTEN OP MOBIEL */
             .mobile-events-list .event-card.passed {
-                filter: brightness(0.6); /* Maak de kaart donkerder */
+                filter: brightness(0.6);
             }
             
-            /* Stijlen en animatie voor het oplichtende evenement op mobiel */
             @keyframes glowing-border {
                 0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.5), 0 0 10px rgba(239, 68, 68, 0.3); }
                 50% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.5); }
@@ -287,23 +302,20 @@
         const scheduleUrl = 'https://nicolaivr.github.io/Patersholfeesten2025/events.json';
 
         let eventsData = [];
-        let currentDay = null; // Start with no selected day
+        let locationsData = {};
+        let currentDay = null;
         let stages = [];
         let intervalId = null;
-
-        // Nieuwe virtuele datum-variabele
         let virtueleDatumTijd = null;
 
         const weekDays = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
         const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 
-        // Functie om tijdstring (HH:MM) om te zetten in minuten vanaf middernacht
         const timeToMinutes = (time) => {
             const [hours, minutes] = time.split(':').map(Number);
             return hours * 60 + minutes;
         };
         
-        // Functie om een datumstring te formatteren naar "Dag DD Mnd"
         const formatDate = (dateString) => {
             const date = new Date(dateString);
             const dayOfWeek = weekDays[date.getUTCDay()];
@@ -312,17 +324,15 @@
             return `${dayOfWeek} ${dayOfMonth} ${month}`;
         };
 
-        // Functie om de datumknoppen dynamisch te renderen
         const renderDateButtons = (dates) => {
-            dateButtonsContainer.innerHTML = ''; // Clear existing buttons
+            dateButtonsContainer.innerHTML = '';
             dates.forEach((dateString, index) => {
                 const button = document.createElement('button');
                 button.id = `day-${index + 1}`;
                 button.className = 'date-button';
                 button.textContent = formatDate(dateString);
-                button.dataset.date = dateString; // Sla de volledige datum op in een data-attribuut
+                button.dataset.date = dateString;
 
-                // Bepaal of deze knop de actieve moet zijn
                 if (dateString === currentDay) {
                     button.classList.add('active');
                 }
@@ -338,7 +348,6 @@
             });
         };
 
-        // Functie om de evenementengegevens op te halen van de opgegeven URL en cache te omzeilen
         const loadEvents = async () => {
             try {
                 const cacheBuster = new Date().getTime();
@@ -349,8 +358,9 @@
                 }
                 const data = await response.json();
                 
-                if (Array.isArray(data)) {
-                    eventsData = data;
+                if (data.events && data.locations) {
+                    eventsData = data.events;
+                    locationsData = data.locations;
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
                     const uniqueDates = [...new Set(eventsData.map(event => event.date))].sort();
                     
@@ -372,7 +382,7 @@
                     renderSchedule(currentDay);
                     startLiveTimeLine();
                 } else {
-                    throw new Error('Ongeldig dataformaat: De respons is geen array.');
+                    throw new Error('Ongeldig dataformaat: De respons is niet zoals verwacht (mist "events" of "locations" key).');
                 }
             } catch (error) {
                 console.error("Could not fetch or parse events data:", error);
@@ -381,11 +391,6 @@
             }
         };
 
-        /**
-         * Functie om de virtuele tijd in te stellen.
-         * @param {string} datetimeString - De gewenste datum en tijd in het formaat 'YYYY-MM-DD HH:mm:ss'.
-         * Voorbeeld: '2025-08-16 19:30:00'
-         */
         function stelVirtueleTijdlijnTijdIn(datetimeString) {
             const parsedDate = new Date(datetimeString);
 
@@ -397,32 +402,23 @@
             virtueleDatumTijd = parsedDate;
             console.log(`De virtuele tijd is ingesteld op ${datetimeString}. De tijdlijn zal nu deze tijd gebruiken.`);
             
-            // Zet de geselecteerde dag op basis van de virtuele datum
             currentDay = virtueleDatumTijd.toISOString().split('T')[0];
             
             renderSchedule(currentDay);
-            // Je kunt handmatig een herhaalde update instellen als je een animatie wilt zien.
-            // Omdat de virtuele tijd statisch is, wordt de live tijdslijn niet automatisch bijgewerkt.
         }
 
-        /**
-         * Reset de virtuele tijd en keert terug naar de echte systeemklok.
-         */
         function resetVirtueleTijdlijnTijd() {
             virtueleDatumTijd = null;
             console.log("De virtuele tijd is gereset. De tijdlijn gebruikt nu de echte systeemklok.");
-            // Herlaad de pagina om zeker te zijn van een schone start.
             window.location.reload();
         }
 
-        // Functie om de rode tijdslijn bij te werken en het huidige evenement te markeren
         const updateTimeLine = () => {
             const now = virtueleDatumTijd ? virtueleDatumTijd : new Date();
             const today = now.toISOString().split('T')[0];
             const timeLines = document.querySelectorAll('.current-time-line');
             const eventCards = document.querySelectorAll('.event-card');
             
-            // Verwijder 'current' en 'passed' classes van alle kaarten
             eventCards.forEach(card => {
                 card.classList.remove('current');
                 card.classList.remove('passed');
@@ -433,14 +429,12 @@
             const isMobile = window.innerWidth <= 768;
 
             if (isToday) {
-                // Vind het startmoment van de kalender om de positie van de rode lijn te berekenen
                 const firstEvent = eventsData.filter(event => event.date === currentDay).sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start))[0];
                 const newStartMinutes = firstEvent ? Math.max(0, timeToMinutes(firstEvent.start) - 60) : 0;
                 
                 if (!isMobile) {
                     const topPosition = ((currentMinutes - newStartMinutes) / 15) * 24;
                     timeLines.forEach(line => {
-                        // Only show the line if the current time is after the grid starts (1h before first event)
                         if (currentMinutes >= newStartMinutes) {
                             line.style.top = `${topPosition}px`;
                             line.style.display = 'block';
@@ -457,7 +451,6 @@
                     const startTimeMinutes = timeToMinutes(card.dataset.start);
                     let endTimeMinutes = timeToMinutes(card.dataset.end);
                     
-                    // AANGEPAST: Pas het end time in minuten aan voor evenementen die over middernacht gaan
                     if (timeToMinutes(card.dataset.end) < timeToMinutes(card.dataset.start)) {
                         endTimeMinutes += 1440;
                     }
@@ -473,7 +466,6 @@
                         const isNormalEvent = startTimeMinutes < timeToMinutes(card.dataset.end);
                         const isSameTimeEvent = startTimeMinutes === timeToMinutes(card.dataset.end);
                         
-                        // Check if the current time is between the event's start and end time (including overnight)
                         if (now >= eventStartDateTime && now < eventEndDateTime) {
                              card.classList.add('current');
                         } else if (isNormalEvent && currentMinutes >= timeToMinutes(card.dataset.end)) {
@@ -488,7 +480,6 @@
             }
         };
 
-        // Functie om de live tijdslijn update te starten
         const startLiveTimeLine = () => {
             if (intervalId) {
                 clearInterval(intervalId);
@@ -498,10 +489,9 @@
                 if (!virtueleDatumTijd) {
                     updateTimeLine();
                 }
-            }, 60000);    
+            }, 60000);
         };
 
-        // Functie om het programma te renderen op basis van de geselecteerde datum
         const renderSchedule = (date) => {
             loadingMessage.style.display = 'none';
             scheduleGridContainer.innerHTML = '';
@@ -512,7 +502,25 @@
             if (isMobile) {
                 stages.forEach(stage => {
                     const stageDiv = document.createElement('div');
-                    stageDiv.innerHTML = `<h2 class="mobile-stage-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</h2>`;
+                    const stageHeader = document.createElement('h2');
+                    stageHeader.className = 'mobile-stage-header';
+                    
+                    // Container to hold the stage name and map link
+                    const nameContainer = document.createElement('div');
+                    nameContainer.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
+                    stageHeader.appendChild(nameContainer);
+
+                    if (locationsData[stage] && locationsData[stage].map_url) {
+                        const mapLink = document.createElement('a');
+                        mapLink.href = locationsData[stage].map_url;
+                        mapLink.target = '_blank';
+                        mapLink.className = 'stage-map-link';
+                        mapLink.textContent = '(map)';
+                        stageHeader.appendChild(mapLink);
+                        stageHeader.title = locationsData[stage].address;
+                    }
+                    
+                    stageDiv.appendChild(stageHeader);
 
                     const stageEventsList = document.createElement('div');
                     stageEventsList.className = 'mobile-events-list';
@@ -555,18 +563,15 @@
                 
                 sortedEvents.forEach(event => {
                     let endMinutes = timeToMinutes(event.end);
-                    // Check if event spans past midnight
                     if (timeToMinutes(event.end) < timeToMinutes(event.start)) {
-                        endMinutes += 1440; // Add 24 hours in minutes
+                        endMinutes += 1440;
                     }
                     if (endMinutes > lastEventMinutes) {
                         lastEventMinutes = endMinutes;
                     }
                 });
                 
-                // Set the correct end time for the grid based on the last event
                 const lastEventEndMinutes = timeToMinutes(lastEvent.end) < timeToMinutes(lastEvent.start) ? timeToMinutes(lastEvent.end) + 1440 : timeToMinutes(lastEvent.end);
-                
                 const firstEventMinutes = timeToMinutes(firstEvent.start);
                 const newStartMinutes = Math.max(0, firstEventMinutes - 60);
                 
@@ -576,9 +581,22 @@
                 const gridTemplate = `80px repeat(${stages.length}, minmax(0, 1fr))`;
                 stageLabelsContainer.style.gridTemplateColumns = gridTemplate;
                 stageLabelsContainer.innerHTML = '<div style="border-right: 1px solid var(--border-color); padding: 16px;">Tijd</div>';
+                
                 stages.forEach(stage => {
                     const stageLabelDiv = document.createElement('div');
+                    stageLabelDiv.className = 'stage-name-container';
                     stageLabelDiv.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
+                    
+                    if (locationsData[stage] && locationsData[stage].map_url) {
+                        const mapLink = document.createElement('a');
+                        mapLink.href = locationsData[stage].map_url;
+                        mapLink.target = '_blank';
+                        mapLink.className = 'stage-map-link';
+                        mapLink.textContent = '(map)';
+                        stageLabelDiv.appendChild(mapLink);
+                        stageLabelDiv.title = locationsData[stage].address;
+                    }
+                    
                     stageLabelsContainer.appendChild(stageLabelDiv);
                 });
                 scheduleGridContainer.appendChild(stageLabelsContainer);
@@ -624,7 +642,7 @@
                     let endTimeMinutes = timeToMinutes(event.end);
                     
                     if (endTimeMinutes < startTimeMinutes) {
-                        endTimeMinutes += 1440; // Add 24 hours for overnight events
+                        endTimeMinutes += 1440;
                     }
 
                     const startRow = Math.floor((startTimeMinutes - newStartMinutes) / 15) + 1;
