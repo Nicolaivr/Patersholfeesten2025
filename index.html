@@ -353,24 +353,18 @@
                     stages = [...new Set(eventsData.map(event => event.stage))].sort();
                     const uniqueDates = [...new Set(eventsData.map(event => event.date))].sort();
                     
-                    // --- NEW CODE FOR DYNAMIC YEAR ---
                     if (uniqueDates.length > 0) {
                         const firstEventDate = new Date(uniqueDates[0]);
                         const festivalYear = firstEventDate.getFullYear();
 
-                        // Update the main heading
                         document.querySelector('h1.text-white').textContent = `Patersholfeesten ${festivalYear}`;
-                        // Update the document title
                         document.title = `Patersholfeesten ${festivalYear} Programma`;
                     }
-                    // --- END NEW CODE ---
 
-                    // Bepaal de huidige dag
                     const now = virtueleDatumTijd ? virtueleDatumTijd : new Date();
                     const today = now.toISOString().split('T')[0];
                     const todayIndex = uniqueDates.indexOf(today);
                     
-                    // Stel de huidige dag in, of de eerste dag als de huidige dag niet in de lijst staat
                     currentDay = todayIndex !== -1 ? today : uniqueDates[0];
 
                     renderDateButtons(uniqueDates);
@@ -442,7 +436,6 @@
                 const firstEvent = eventsData.filter(event => event.date === currentDay).sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start))[0];
                 const newStartMinutes = firstEvent ? Math.max(0, timeToMinutes(firstEvent.start) - 60) : 0;
                 
-                // --- START CORRECTION ---
                 if (!isMobile) {
                     const topPosition = ((currentMinutes - newStartMinutes) / 15) * 24;
                     timeLines.forEach(line => {
@@ -457,7 +450,6 @@
                 } else {
                     timeLines.forEach(line => line.style.display = 'none');
                 }
-                // --- END CORRECTION ---
 
                 eventCards.forEach(card => {
                     const eventDate = card.dataset.date;
@@ -468,16 +460,13 @@
                         card.classList.add('current');
                     }
                     
-                    // Logic for marking events as "passed" on mobile.
                     if (isMobile && eventDate === today) {
                         const isNormalEvent = startTimeMinutes < endTimeMinutes;
                         const isSameTimeEvent = startTimeMinutes === endTimeMinutes;
 
-                        // Case 1: A normal event that ends on the same day it starts.
                         if (isNormalEvent && currentMinutes >= endTimeMinutes) {
                             card.classList.add('passed');
                         }    
-                        // Case 2: An event with the same start/end time, treated as a 1-hour block.
                         else if (isSameTimeEvent && currentMinutes >= startTimeMinutes + 60) {
                             card.classList.add('passed');
                         }
@@ -494,7 +483,6 @@
                 clearInterval(intervalId);
             }
             updateTimeLine();
-            // Update elke minuut als we niet in virtuele tijd-modus zijn
             intervalId = setInterval(() => {
                 if (!virtueleDatumTijd) {
                     updateTimeLine();
@@ -511,7 +499,6 @@
             const filteredEvents = eventsData.filter(event => event.date === date);
 
             if (isMobile) {
-                // Mobiele lay-out: een eenvoudige, gestapelde lijst van evenementen per podium
                 stages.forEach(stage => {
                     const stageDiv = document.createElement('div');
                     stageDiv.innerHTML = `<h2 class="mobile-stage-header">${stage.charAt(0).toUpperCase() + stage.slice(1)}</h2>`;
@@ -528,7 +515,7 @@
                         eventDiv.style.backgroundColor = getEventColor(event.stage);
                         eventDiv.dataset.start = event.start;
                         eventDiv.dataset.end = event.end;
-                        eventDiv.dataset.date = event.date; // BELANGRIJKE TOEVOEGING: sla de datum op
+                        eventDiv.dataset.date = event.date;
                         eventDiv.innerHTML = `
                             <div>
                                 <div class="event-title">${event.title}</div>
@@ -544,13 +531,11 @@
                 });
 
             } else {
-                // Desktop lay-out: podia naast elkaar in een grid
                 if (filteredEvents.length === 0) {
                     scheduleGridContainer.innerHTML = '<div style="text-align: center; color: #ccc;">Geen evenementen voor deze dag.</div>';
                     return;
                 }
 
-                // Bepaal het startmoment van de kalender (een uur voor het eerste evenement)
                 const sortedEvents = filteredEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                 const firstEvent = sortedEvents[0];
                 const newStartMinutes = firstEvent ? Math.max(0, timeToMinutes(firstEvent.start) - 60) : 0;
@@ -575,16 +560,16 @@
                 scheduleContainer.style.setProperty('--stages', stages.length);
                 scheduleGridContainer.appendChild(scheduleContainer);
                 
-                // Voeg tijdlabels en horizontale lijnen toe, beginnend bij het nieuwe startuur
                 const totalMinutes = (24 * 60) - newStartMinutes;
                 const totalRows = Math.ceil(totalMinutes / 15);
                 
                 for (let hour = startHour; hour < 25; hour++) {
                     const relativeMinutes = (hour * 60) - newStartMinutes;
-                    if (relativeMinutes < 0) continue; // Zorg ervoor dat we niet vóór het nieuwe startmoment beginnen
+                    if (relativeMinutes < 0) continue;
                     
                     const hourLine = document.createElement('div');
                     hourLine.className = 'hour-line';
+                    const topPosition = (relativeMinutes / 15) * 24; // FIX: `topPosition` defined here
                     hourLine.style.top = `${topPosition}px`;
                     scheduleContainer.appendChild(hourLine);
                     
@@ -595,17 +580,14 @@
                     scheduleContainer.appendChild(timeLabelDiv);
                 }
                 
-                // Voeg verticale lijnen toe
                 for (let i = 1; i <= stages.length; i++) {
                     const stageGridLine = document.createElement('div');
                     stageGridLine.className = `stage-line`;
                     stageGridLine.style.gridColumn = i + 1;
-                    // De hoogte van de lijn wordt bepaald door het aantal rijen
                     stageGridLine.style.gridRow = `1 / ${totalRows + 1}`;    
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
-                // Render evenementen en pas hun positie aan op basis van het nieuwe startmoment
                 filteredEvents.forEach(event => {
                     const startTimeMinutes = timeToMinutes(event.start);
                     const endTimeMinutes = timeToMinutes(event.end);
@@ -615,7 +597,7 @@
                     let rowSpan = endRow - startRow;
                     
                     if (rowSpan <= 0) {
-                        rowSpan = 4; // This represents 4 * 15 minutes = 1 hour
+                        rowSpan = 4;
                         endRow = startRow + rowSpan;
                     }
                     
@@ -628,7 +610,7 @@
                     eventDiv.style.backgroundColor = getEventColor(event.stage);
                     eventDiv.dataset.start = event.start;
                     eventDiv.dataset.end = event.end;
-                    eventDiv.dataset.date = event.date; // BELANGRIJKE TOEVOEGING: sla de datum op
+                    eventDiv.dataset.date = event.date;
                     
                     eventDiv.innerHTML = `
                         <div>
@@ -648,7 +630,6 @@
             updateTimeLine();
         };
 
-        // Functie om de achtergrondkleur van een podium te krijgen
         const getEventColor = (stage) => {
             const colors = ['#333', '#555', '#777', '#999'];
             const stageIndex = stages.indexOf(stage);
