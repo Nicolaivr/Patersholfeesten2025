@@ -132,7 +132,6 @@
         
         .stage-line {
             border-left: 1px solid var(--border-color);
-            /* AANGEPAST: Dit trekt de lijn 1px naar links om overlap te voorkomen */
             margin-left: -1px;
         }
 
@@ -602,13 +601,13 @@
                 }
                 
                 const totalMinutes = lastEventMinutes - newStartMinutes;
-                const totalRows = Math.ceil(totalMinutes / 15);
+                const totalRows = Math.ceil(totalMinutes / 15) + 1; // +1 to ensure it reaches the last line
                 
                 for (let i = 1; i <= stages.length; i++) {
                     const stageGridLine = document.createElement('div');
                     stageGridLine.className = `stage-line`;
                     stageGridLine.style.gridColumn = i + 1;
-                    stageGridLine.style.gridRow = `1 / span ${totalRows + 1}`;
+                    stageGridLine.style.gridRow = `1 / span ${totalRows}`;
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
