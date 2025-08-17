@@ -491,7 +491,7 @@
                 }
             }, 60000);
         };
-
+        
         const renderSchedule = (date) => {
             loadingMessage.style.display = 'none';
             scheduleGridContainer.innerHTML = '';
@@ -505,8 +505,7 @@
                     const stageHeader = document.createElement('h2');
                     stageHeader.className = 'mobile-stage-header';
                     
-                    // Container to hold the stage name and map link
-                    const nameContainer = document.createElement('div');
+                    const nameContainer = document.createElement('span');
                     nameContainer.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
                     stageHeader.appendChild(nameContainer);
 
@@ -515,7 +514,7 @@
                         mapLink.href = locationsData[stage].map_url;
                         mapLink.target = '_blank';
                         mapLink.className = 'stage-map-link';
-                        mapLink.textContent = '(map)';
+                        mapLink.textContent = ' (map)';
                         stageHeader.appendChild(mapLink);
                         stageHeader.title = locationsData[stage].address;
                     }
@@ -585,14 +584,17 @@
                 stages.forEach(stage => {
                     const stageLabelDiv = document.createElement('div');
                     stageLabelDiv.className = 'stage-name-container';
-                    stageLabelDiv.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
+                    stageLabelDiv.appendChild(nameSpan);
                     
                     if (locationsData[stage] && locationsData[stage].map_url) {
                         const mapLink = document.createElement('a');
                         mapLink.href = locationsData[stage].map_url;
                         mapLink.target = '_blank';
                         mapLink.className = 'stage-map-link';
-                        mapLink.textContent = '(map)';
+                        mapLink.textContent = ' (map)';
                         stageLabelDiv.appendChild(mapLink);
                         stageLabelDiv.title = locationsData[stage].address;
                     }
@@ -701,6 +703,18 @@
             if (newIsMobileLayout !== isMobileLayout) {
                 isMobileLayout = newIsMobileLayout;
                 renderSchedule(currentDay);
+            }
+        });
+        
+        // NEW CODE FOR PAGE VISIBILITY API
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+            } else {
+                startLiveTimeLine();
             }
         });
     </script>
