@@ -315,6 +315,44 @@
             const [hours, minutes] = time.split(':').map(Number);
             return hours * 60 + minutes;
         };
+
+        const computeOverlapLayout = (stageEvents) => {
+            const sorted = stageEvents.slice().sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+            const items = sorted.map(event => ({ event, colIndex: 0, totalCols: 1 }));
+
+            for (let i = 0; i < items.length; i++) {
+                const aStart = timeToMinutes(items[i].event.start);
+                let aEnd = timeToMinutes(items[i].event.end);
+                if (aEnd < aStart) aEnd += 1440;
+                const usedCols = new Set();
+                for (let j = 0; j < i; j++) {
+                    const bStart = timeToMinutes(items[j].event.start);
+                    let bEnd = timeToMinutes(items[j].event.end);
+                    if (bEnd < bStart) bEnd += 1440;
+                    if (aStart < bEnd && aEnd > bStart) usedCols.add(items[j].colIndex);
+                }
+                let col = 0;
+                while (usedCols.has(col)) col++;
+                items[i].colIndex = col;
+            }
+
+            for (let i = 0; i < items.length; i++) {
+                const aStart = timeToMinutes(items[i].event.start);
+                let aEnd = timeToMinutes(items[i].event.end);
+                if (aEnd < aStart) aEnd += 1440;
+                let maxCol = items[i].colIndex;
+                for (let j = 0; j < items.length; j++) {
+                    if (i === j) continue;
+                    const bStart = timeToMinutes(items[j].event.start);
+                    let bEnd = timeToMinutes(items[j].event.end);
+                    if (bEnd < bStart) bEnd += 1440;
+                    if (aStart < bEnd && aEnd > bStart) maxCol = Math.max(maxCol, items[j].colIndex);
+                }
+                items[i].totalCols = maxCol + 1;
+            }
+
+            return items;
+        };
         
         const formatDate = (dateString) => {
             const date = new Date(dateString);
@@ -573,6 +611,8 @@
                 const lastEventEndMinutes = timeToMinutes(lastEvent.end) < timeToMinutes(lastEvent.start) ? timeToMinutes(lastEvent.end) + 1440 : timeToMinutes(lastEvent.end);
                 const firstEventMinutes = timeToMinutes(firstEvent.start);
                 const newStartMinutes = Math.max(0, firstEventMinutes - 60);
+                const PX_PER_QUARTER_HOUR = 24;
+                const MIN_EVENT_HEIGHT_PX = 20;
                 
                 const stageLabelsContainer = document.createElement('div');
                 stageLabelsContainer.id = 'stage-labels';
@@ -618,7 +658,7 @@
                     
                     const hourLine = document.createElement('div');
                     hourLine.className = 'hour-line';
-                    const topPosition = (relativeMinutes / 15) * 24;
+                    const topPosition = (relativeMinutes / 15) * PX_PER_QUARTER_HOUR;
                     hourLine.style.top = `${topPosition}px`;
                     scheduleContainer.appendChild(hourLine);
                     
@@ -639,41 +679,52 @@
                     scheduleContainer.appendChild(stageGridLine);
                 }
                 
-                filteredEvents.forEach(event => {
-                    const startTimeMinutes = timeToMinutes(event.start);
-                    let endTimeMinutes = timeToMinutes(event.end);
-                    
-                    if (endTimeMinutes < startTimeMinutes) {
-                        endTimeMinutes += 1440;
-                    }
+                stages.forEach((stage, idx) => {
+                    const stageEvents = filteredEvents.filter(e => e.stage === stage);
+                    if (stageEvents.length === 0) return;
 
-                    const startRow = Math.floor((startTimeMinutes - newStartMinutes) / 15) + 1;
-                    const endRow = Math.ceil((endTimeMinutes - newStartMinutes) / 15) + 1;
-                    let rowSpan = endRow - startRow;
-                    
-                    if (rowSpan <= 0) {
-                        rowSpan = 4;
-                    }
-                    
-                    const stageIndex = stages.indexOf(event.stage) + 2;
+                    const stageCol = idx + 2;
+                    const stageContainer = document.createElement('div');
+                    stageContainer.style.gridColumn = stageCol;
+                    stageContainer.style.gridRow = `1 / span ${finalEndRow}`;
+                    stageContainer.style.position = 'relative';
+                    scheduleContainer.appendChild(stageContainer);
 
-                    const eventDiv = document.createElement('div');
-                    eventDiv.className = `event-card`;
-                    eventDiv.style.gridRow = `${startRow} / span ${rowSpan}`;
-                    eventDiv.style.gridColumn = stageIndex;
-                    eventDiv.style.backgroundColor = getEventColor(event.stage);
-                    eventDiv.dataset.start = event.start;
-                    eventDiv.dataset.end = event.end;
-                    eventDiv.dataset.date = event.date;
-                    
-                    eventDiv.innerHTML = `
-                        <div>
-                            <div class="event-title">${event.title}</div>
-                            <div class="event-time">${event.start} - ${event.end}</div>
-                            ${event.extra_info ? `<div class="event-info">${event.extra_info}</div>` : ''}
-                        </div>
-                    `;
-                    scheduleContainer.appendChild(eventDiv);
+                    const layout = computeOverlapLayout(stageEvents);
+
+                    layout.forEach(({ event, colIndex, totalCols }) => {
+                        const startMin = timeToMinutes(event.start);
+                        let endMin = timeToMinutes(event.end);
+                        if (endMin < startMin) endMin += 1440;
+
+                        const margin = 2;
+                        const topPx = ((startMin - newStartMinutes) / 15) * PX_PER_QUARTER_HOUR + margin;
+                        const heightPx = Math.max(((endMin - startMin) / 15) * PX_PER_QUARTER_HOUR - 2 * margin, MIN_EVENT_HEIGHT_PX);
+                        const widthFrac = 100 / totalCols;
+
+                        const eventDiv = document.createElement('div');
+                        eventDiv.className = 'event-card';
+                        eventDiv.style.position = 'absolute';
+                        eventDiv.style.top = `${topPx}px`;
+                        eventDiv.style.height = `${heightPx}px`;
+                        eventDiv.style.left = `calc(${colIndex * widthFrac}% + ${margin}px)`;
+                        eventDiv.style.width = `calc(${widthFrac}% - ${2 * margin}px)`;
+                        eventDiv.style.margin = '0';
+                        eventDiv.style.boxSizing = 'border-box';
+                        eventDiv.style.backgroundColor = getEventColor(event.stage);
+                        eventDiv.dataset.start = event.start;
+                        eventDiv.dataset.end = event.end;
+                        eventDiv.dataset.date = event.date;
+
+                        eventDiv.innerHTML = `
+                            <div>
+                                <div class="event-title">${event.title}</div>
+                                <div class="event-time">${event.start} - ${event.end}</div>
+                                ${event.extra_info ? `<div class="event-info">${event.extra_info}</div>` : ''}
+                            </div>
+                        `;
+                        stageContainer.appendChild(eventDiv);
+                    });
                 });
 
                 const timeLine = document.createElement('div');
